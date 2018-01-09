@@ -58,6 +58,9 @@ exports = module.exports = function(io) {
         })
 
         socket.on('createShow', (obj, cb) => {
+
+            console.log('--- CREATE SHOW ---')
+
             Broadcasters.findOne({slug: obj.slug}, (err, broadcaster) => {
                 let newShow = {show: obj.show, slug: obj.slug, username: obj.username, images: broadcaster.images, socket: socket.id}
                 let cr = new ChatRooms(newShow)
