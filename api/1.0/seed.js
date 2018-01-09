@@ -81,6 +81,15 @@ const objectsave = (type, err) => {
     }
 }
 
+for (let i = 1; i <= 10; i++){
+    let usr = new UserModel(new User('Admin ' + i, 'royalties', 'offline', ['admin']));
+    usr.save((err) => { objectsave('Admin', err) })
+}
+
+for (let i = 1; i <= 25; i++){
+    let usr = new UserModel(new User('User ' + i, 'royalties', 'offline', ['user']));
+    usr.save((err) => { objectsave('User', err) })
+}
 
 for (let i = 1; i <= 100; i++){
     let usr = new UserModel(new User('Broadcaster ' + i));
