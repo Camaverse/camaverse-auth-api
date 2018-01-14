@@ -54,30 +54,48 @@ exports = module.exports = function(io) {
         })
 
         socket.on('watcherInit', (watch, cb) => {
+            console.log('watxcher init')
             let qry = {slug: watch.broadcaster}
             let usr = {slug: watch.user.slug, username: watch.user.username, socket: socket.id, isLoggedIn: watch.user.isLoggedIn}
             Broadcaster.findOne(qry, (err, broadcaster) => {
+                console.log(broadcaster)
                 if(err) cb({err})
                 else {
-                    let query = {slug: watch.broadcaster, status: 'online'}
-                    let update = {$push: { users: usr, userSlugs: usr.slug }}
-                    let options = {new: true}
-                    let fields = 'topic tags status isAway show users userSlugs'
-                    Chatroom.findOne( query, fields, (err, chatrooms) => {
-                        if (err) cb(err)
-                        else if (chatrooms) {
-                            if (chatrooms.userSlugs.indexOf(usr.slug) == -1){
-                                chatrooms.userSlugs.push(usr.slug)
-                                chatrooms.users.push(usr)
+                    if (broadcaster.room) {
+                        let query = {_id: broadcaster.room}
+                        let update = {$push: {users: usr, userSlugs: usr.slug}}
+                        let options = {new: true}
+                        let fields = 'topic tags status isAway show users userSlugs'
+                        Chatroom.findOne(query, fields, (err, chatrooms) => {
+                            console.log('hello 1')
+                            if (err) {
+                                console.log('hello A')
+                                cb(err)
                             }
-                            chatrooms.save((err, chatrooms) => {
-                                socket.join(chatrooms._id)
-                                cb({broadcaster, chatrooms: [chatrooms]})
-                                socket.in(chatrooms._id).emit('updateViewers', chatrooms)
-                                io.emit('updateViewers', chatrooms)
-                            })
-                        }
-                    })
+                            else if (chatrooms) {
+                                console.log('hello2')
+                                if (chatrooms.userSlugs.indexOf(usr.slug) == -1) {
+                                    chatrooms.userSlugs.push(usr.slug)
+                                    chatrooms.users.push(usr)
+                                }
+                                chatrooms.save((err, chatrooms) => {
+                                    console.log('hello 3')
+                                    if (err) cb({err})
+                                    else {
+                                        console.log('hello')
+                                        socket.join(chatrooms._id)
+                                        cb({broadcaster, chatrooms: [chatrooms]})
+                                        socket.in(chatrooms._id).emit('updateViewers', chatrooms)
+                                        io.emit('updateViewers', chatrooms)
+                                    }
+                                })
+                            } else {
+                                console.log('chatrooms not found')
+                            }
+                        })
+                    } else {
+                        cb({broadcaster, chatrooms: []})
+                    }
                 }
             })
         })

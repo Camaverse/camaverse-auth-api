@@ -24,9 +24,12 @@ var TipsSchema = new Schema({
     },
     to: {
         id: { type: Schema.Types.ObjectId, ref: 'ChatRoom', required: true },
-        show: {type: String, required: true},
-        slug: {type: String, required: true}
+        show: String,
+        slug: {type: String, required: true},
+        room: String
     },
+    isPrivate: {type: Boolean, default: false},
+    isOffline: {type: Boolean, default: false},
     clientTime: {type: Date, required: true},
     serverTime: Date,
     transmitTime: Date

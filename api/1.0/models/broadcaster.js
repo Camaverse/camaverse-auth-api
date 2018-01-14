@@ -33,7 +33,16 @@ var BroadcasterSchema = new Schema({
         type: Number,
         default: 0,
         min: 0
-    }
+    },
+    coins: {
+        balance: {type: Number, required: true, default: 0},
+        transactions: [{
+            category: { type: String, enum: ['load', 'award', 'transfer', 'tip', 'gift'], required: true },
+            amount: {type: Number, required: true},
+            creatdAt: {type: Date, required: true, default: Date.now()},
+            details: {type: String}
+        }]
+    },
 },{
     timestamps: true
 });

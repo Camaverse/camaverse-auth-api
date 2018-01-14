@@ -23,7 +23,11 @@ exports = module.exports = function(io) {
                 roles: ['guest'],
                 slug: null,
                 status: 'online',
-                username: null
+                username: null,
+                coins: {
+                    balance: 0
+                },
+                xp: 0
             }
 
             systemStore.find({}, (err, rec) => {

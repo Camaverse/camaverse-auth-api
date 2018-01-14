@@ -5,6 +5,15 @@ var bcrypt = require('bcrypt-nodejs');
 var slugify = require('slugify');
 
 var UserSchema = new Schema({
+    coins: {
+        balance: {type: Number, required: true, default: 0},
+        transactions: [{
+            category: { type: String, enum: ['load', 'award', 'transfer', 'tip', 'gift'], required: true },
+            amount: {type: Number, required: true},
+            creatdAt: {type: Date, required: true, default: Date.now()},
+            details: {type: String}
+        }]
+    },
     email: {
         type: String,
         unique: true,
@@ -41,6 +50,11 @@ var UserSchema = new Schema({
         unique: true,
         required: true
     },
+    xp: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     broadcasts: [{ type: Schema.Types.ObjectId, ref: 'Broadcasts' }]
 },{
     timestamps: true
@@ -54,7 +68,9 @@ get(function() { return {
     slug: this.slug,
     roles: this.roles,
     status: this.status,
-    isLoggedIn: this.isLoggedIn
+    isLoggedIn: this.isLoggedIn,
+    xp: this.xp,
+    coins: this.coins
 }
 });
 

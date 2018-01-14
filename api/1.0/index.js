@@ -7,7 +7,8 @@ const express = require('express');
 const router = express.Router();
 const User = require("./models/user");
 
-mongoose.connect(config.database);
+mongoose.connect(config.database.local);
+// mongoose.connect(config.database.remote);
 
 exports = module.exports = function(io) {
 
@@ -20,7 +21,8 @@ router.use('/broadcasters', require('./routes/broadcasters')(io));
 router.use('/members', require('./routes/members'));
 router.use('/admins', require('./routes/admins'));
 router.use('/chatrooms', require('./routes/chatrooms')(io));
-router.use('/tips', require('./routes/tips'));
+router.use('/purchases', require('./routes/purchases')(io));
+router.use('/tips', require('./routes/tips')(io));
 
     return router;
 }
@@ -84,8 +86,10 @@ router.post('/signin', function(req, res) {
 
             user.save((err, user) => {
               if (err) {
+                console.log(err)
                 res.status(500).json({success: false, msg: "Couldn't Update User Status"})
               } else {
+                  console.log(user)
                   res.status(200).json({success: true, token: 'JWT ' + token, user: user.loginInfo})
               }
             })
