@@ -41,11 +41,6 @@ exports = module.exports = function(io) {
                             if(cb)cb({err})
                         } else {
                             // find the broadcaster
-
-                            console.log(tip)
-
-
-
                             Broadcasters.findOne({slug: tip.to.slug}, (err, broadcaster)=> {
                                 if (err) { if(cb) cb({err}) }
                                 else {
@@ -72,8 +67,9 @@ exports = module.exports = function(io) {
                                                     console.log('ERR::::', err)
                                                 } else {
                                                     console.log('Sending Coins!!!', user.coins)
-                                                    if (cb) cb(user.coins)
-                                                    socket.emit('transmitTip')
+                                                    tip.balance = user.coins
+                                                    if (cb) cb(tip)
+                                                    socket.emit('transmitTip', tip)
                                                 }
                                             })
                                         }

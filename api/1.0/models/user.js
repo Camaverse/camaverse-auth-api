@@ -5,6 +5,7 @@ var bcrypt = require('bcrypt-nodejs');
 var slugify = require('slugify');
 
 var UserSchema = new Schema({
+    disableOfflineWarning: {type: Boolean, default: false},
     coins: {
         balance: {type: Number, required: true, default: 0},
         transactions: [{
@@ -70,7 +71,8 @@ get(function() { return {
     status: this.status,
     isLoggedIn: this.isLoggedIn,
     xp: this.xp,
-    coins: this.coins
+    coins: this.coins,
+    disableOfflineWarning: this.disableOfflineWarning
 }
 });
 
