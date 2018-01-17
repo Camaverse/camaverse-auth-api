@@ -1,10 +1,7 @@
-const bcrypt = require('bcrypt-nodejs');
-const config = require('./config/database');
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 const UserModel = require("./models/user");
 const BroadcasterModel = require("./models/broadcaster");
-const ChatRoomModel = require("./models/chatrooms");
 const SystemModel = require("./models/system");
 const org_tags = ["abc","def","hij","klm","nop","qrs","tuv","wxy","z"];
 
@@ -71,7 +68,7 @@ class Broadcaster {
     }
 }
 
-mongoose.connect(config.database);
+mongoose.connect(process.env.DB_CONNECT);
 
 const objectsave = (type, err) => {
     if (err) {

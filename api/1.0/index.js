@@ -75,7 +75,7 @@ router.post('/signin', function(req, res) {
       user.comparePassword(req.body.password, function (err, isMatch) {
         if (isMatch && !err) {
           // if user is found and password is right create a token
-          var token = jwt.sign(user, config.secret);
+          var token = jwt.sign(user, process.env.PASSPORT_SECRET);
           // return the information including token as JSON
 
             user.status = 'online';
