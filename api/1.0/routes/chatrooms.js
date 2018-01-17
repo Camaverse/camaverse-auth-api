@@ -1,14 +1,10 @@
-const mongoose = require('mongoose');
-const passport = require('passport');
-const config = require('../config/database');
-require('../config/passport')(passport);
 const express = require('express');
 const router = express.Router();
 const Broadcasters = require("../models/broadcaster");
 const ChatRooms = require("../models/chatrooms");
 const ChatMessages = require("../models/chatmessages");
 
-const ApiResponse = require('../ApiResponse');
+const ApiResponse = require('../helpers/ApiResponse');
 const Success = ApiResponse.SuccessResponse;
 
 const qryOptions = { new: true, fields: 'username slug status tags approved images show isAway topic users userSlugs ' }
@@ -59,8 +55,6 @@ exports = module.exports = function(io) {
 
         socket.on('createShow', (obj, cb) => {
 
-            console.log('--- CREATE SHOW ---')
-
             Broadcasters.findOne({slug: obj.slug}, (err, broadcaster) => {
                 let newShow = {show: obj.show, slug: obj.slug, username: obj.username, images: broadcaster.images, socket: socket.id}
                 let cr = new ChatRooms(newShow)
@@ -81,7 +75,6 @@ exports = module.exports = function(io) {
         })
 
         socket.on('goAway', (slug, cb) => {
-            console.log('--- goaway ---', slug)
             let qry = {show: 'public', status: 'online', slug}
             let events = {
                 date: Date.now(),

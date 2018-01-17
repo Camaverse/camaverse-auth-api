@@ -1,15 +1,7 @@
-var mongoose = require('mongoose');
-var passport = require('passport');
-var config = require('../config/database');
-require('../config/passport')(passport);
 var express = require('express');
 var router = express.Router();
 var Purchases = require("../models/purchases");
 var Users = require("../models/user");
-
-
-var ApiResponse = require('../ApiResponse')
-const Success = ApiResponse.SuccessResponse
 
 const getPerUnit = (units) => {
     /*
@@ -53,8 +45,6 @@ exports = module.exports = function(io) {
                 total: getTotalPrice(perUnit,purchase.units)
             }
 
-            console.log( purchase )
-
             purchase.save((err, doc) => {
 
                 if (err) cb(err)
@@ -76,8 +66,6 @@ exports = module.exports = function(io) {
                         fields: 'coins',
                         new: true
                     }
-
-                    console.log(update)
 
                     Users.findOneAndUpdate(qry, update, options, (err, user) => {
                         if (err) cb({err})

@@ -1,13 +1,11 @@
-var mongoose = require('mongoose');
 var passport = require('passport');
-var config = require('../config/database');
-require('../config/passport')(passport);
+require('../passport')(passport);
 var express = require('express');
 var router = express.Router();
 var User = require("../models/user");
 
 
-var ApiResponse = require('../ApiResponse')
+var ApiResponse = require('../helpers/ApiResponse')
 const Success = ApiResponse.SuccessResponse
 
 // GET: /v1.0/users

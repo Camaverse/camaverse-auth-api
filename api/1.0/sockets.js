@@ -9,12 +9,6 @@ exports = module.exports = function(io) {
     io.on('connection', function (soc) {
         socket = soc
 
-        socket.on('adminInit', () => {
-            console.log('admin init');
-            socket.join('admin');
-            io.to('admin').emit('newAdminJoin')
-        })
-
         socket.on('connect-guest', (cb) => {
             let guestNum = null
             let guest = {
@@ -45,12 +39,10 @@ exports = module.exports = function(io) {
         })
 
         socket.on('joinRoom', (room, user) => {
-            console.log('join Room');
             socket.join(createRoomName(room));
         })
 
         socket.on('sendMessage', (msg, cb) => {
-            console.log(msg)
             msg.serverTime = Date.now();
             msg = new chatmessages(msg);
             msg.save((err, message) => {

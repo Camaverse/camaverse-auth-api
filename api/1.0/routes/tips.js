@@ -1,17 +1,11 @@
-var mongoose = require('mongoose');
 var passport = require('passport');
-var config = require('../config/database');
-require('../config/passport')(passport);
 var express = require('express');
 var router = express.Router();
 var Tips = require("../models/tips");
 var Users = require("../models/user");
 var Broadcasters = require("../models/broadcaster");
-const socket = require('../sockets').transmit;
 
-
-var ApiResponse = require('../ApiResponse')
-const Success = ApiResponse.SuccessResponse
+var ApiResponse = require('../helpers/ApiResponse')
 
 exports = module.exports = function(io) {
 
@@ -54,19 +48,15 @@ exports = module.exports = function(io) {
                                     // add the amount and save
                                     broadcaster.coins.balance += tip.amount
                                     broadcaster.coins.transactions.push(transaction2)
-                                    console.log(broadcaster, user)
                                     broadcaster.save((err, broadcaster) => {
                                         if (err) { if(cb)cb({err})
-                                            console.log('ERR::::', err)
                                         } else {
                                             let room = tip.to.room
                                             tip = new Tips  (tip)
                                             tip.save((err, tip) => {
                                                 if (err) {
                                                     if(cb) cb({err})
-                                                    console.log('ERR::::', err)
                                                 } else {
-                                                    console.log('Sending Coins!!!', user.coins)
                                                     tip.balance = user.coins
                                                     if (cb) cb(tip)
                                                     socket.emit('transmitTip', tip)

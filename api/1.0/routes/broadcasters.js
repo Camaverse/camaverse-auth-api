@@ -1,14 +1,9 @@
-const mongoose = require('mongoose');
-const passport = require('passport');
-const config = require('../config/database');
-require('../config/passport')(passport);
 const express = require('express');
 const router = express.Router();
 const Broadcaster = require("../models/broadcaster");
 const Chatroom = require("../models/chatrooms");
-const socket = require('../sockets').transmit;
 
-const ApiResponse = require('../ApiResponse')
+const ApiResponse = require('../helpers/ApiResponse')
 const Success = ApiResponse.SuccessResponse
 
 const broadcasterGridFields = 'username slug status tags approved images show isAway topic';
@@ -16,7 +11,6 @@ const qryOptions = {
     limit: 200,
     select: broadcasterGridFields
 };
-
 
 exports = module.exports = function(io) {
 
@@ -54,11 +48,9 @@ exports = module.exports = function(io) {
         })
 
         socket.on('watcherInit', (watch, cb) => {
-            console.log('watxcher init')
             let qry = {slug: watch.broadcaster}
             let usr = {slug: watch.user.slug, username: watch.user.username, socket: socket.id, isLoggedIn: watch.user.isLoggedIn}
             Broadcaster.findOne(qry, (err, broadcaster) => {
-                console.log(broadcaster)
                 if(err) cb({err})
                 else {
                     if (broadcaster.room) {
@@ -67,22 +59,17 @@ exports = module.exports = function(io) {
                         let options = {new: true}
                         let fields = 'topic tags status isAway show users userSlugs'
                         Chatroom.findOne(query, fields, (err, chatrooms) => {
-                            console.log('hello 1')
                             if (err) {
-                                console.log('hello A')
                                 cb(err)
                             }
                             else if (chatrooms) {
-                                console.log('hello2')
                                 if (chatrooms.userSlugs.indexOf(usr.slug) == -1) {
                                     chatrooms.userSlugs.push(usr.slug)
                                     chatrooms.users.push(usr)
                                 }
                                 chatrooms.save((err, chatrooms) => {
-                                    console.log('hello 3')
                                     if (err) cb({err})
                                     else {
-                                        console.log('hello')
                                         socket.join(chatrooms._id)
                                         cb({broadcaster, chatrooms: [chatrooms]})
                                         socket.in(chatrooms._id).emit('updateViewers', chatrooms)
@@ -142,10 +129,8 @@ exports = module.exports = function(io) {
         let slug = req.params.slug
         let qry = {slug}
         let offlineShows = ['offline', 'away']
-        console.log('ADD NEW SHOW FIND A')
 
         Broadcaster.findOne(qry, (err, broadcaster) => {
-            console.log('ADD NEW SHOW FIND 1')
             if (err) {
                 res.status(404).json({status: 'fail', error: err})
             } else if (!broadcaster) {
@@ -160,8 +145,6 @@ exports = module.exports = function(io) {
                 }
 
                 if (show === 'away') show = {show: 'public'}
-
-                console.log('ADD NEW SHOW FIND 2')
 
                 if (show === 'offline') {
                     broadcaster.room = null

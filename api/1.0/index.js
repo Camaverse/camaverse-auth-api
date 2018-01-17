@@ -1,14 +1,12 @@
 const mongoose = require('mongoose');
 const passport = require('passport');
-const config = require('./config/database');
-require('./config/passport')(passport);
+require('./passport')(passport);
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const router = express.Router();
 const User = require("./models/user");
 
-mongoose.connect(config.database.local);
-// mongoose.connect(config.database.remote);
+mongoose.connect(process.env.DB_CONNECT);
 
 exports = module.exports = function(io) {
 
@@ -86,10 +84,8 @@ router.post('/signin', function(req, res) {
 
             user.save((err, user) => {
               if (err) {
-                console.log(err)
                 res.status(500).json({success: false, msg: "Couldn't Update User Status"})
               } else {
-                  console.log(user)
                   res.status(200).json({success: true, token: 'JWT ' + token, user: user.loginInfo})
               }
             })
