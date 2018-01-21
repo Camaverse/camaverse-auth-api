@@ -1,11 +1,18 @@
+require('dotenv').config()
+
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 const UserModel = require("./models/user");
-const BroadcasterModel = require("./models/broadcaster");
+const BroadcasterModel = require("./models/broadcaster")
+const ChatroomModel = require("./models/chatrooms")
 const SystemModel = require("./models/system");
 const org_tags = ["abc","def","hij","klm","nop","qrs","tuv","wxy","z"];
 
 let tags = org_tags.join(',').split(',');
+
+
+console.log(process.env.DB_CONNECT);
+
 
 for (let i = 0; i < 10; i ++) {
     for (let tag in org_tags) {
@@ -13,39 +20,37 @@ for (let i = 0; i < 10; i ++) {
     }
 }
 
+const rando = () => Math.floor(Math.random() * 19) + 1
+
 class User {
     constructor (
         username,
         password = "royalties",
-        status = "offline",
-        roles = ["broadcaster"],
-        isLoggedIn = false
+        roles,
+        isLoggedIn
     ) {
         this._id = new mongoose.Types.ObjectId();
-        this.status = status;
-        this.isLoggedIn = isLoggedIn;
-        this.roles = roles;
+        this.username = username;
         this.slug = slugify(username, {lower: true});
         this.email = this.slug + '@a.com';
         this.password = password;
-        this.username = username;
+        if (isLoggedIn) this.isLoggedIn = isLoggedIn;
+        if (roles) this.roles = roles;
     }
 }
 class Broadcaster {
 
     constructor (
-        users,
-        username,
+        username
     ) {
         this._id = new mongoose.Types.ObjectId();
-        this.status = "offline";
+        this.isOnline = false;
         this.slug = slugify(username, {lower: true});
         this.username = username;
         this.tags = this.createTags();
         this.approved = this.randomDate(new Date(2012, 0, 1), new Date());
-        this.xp = this.randomIndex(999999,0);
         this.images = {
-            broadcasterGrid: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/70390/show-1.jpg"
+            broadcasterGrid: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/70390/show-" + rando() +  ".jpg"
         }
     }
 
@@ -78,24 +83,63 @@ const objectsave = (type, err) => {
     }
 }
 
-for (let i = 1; i <= 10; i++){
-    let usr = new UserModel(new User('Admin ' + i, 'royalties', 'offline', ['admin']));
+
+const admins = (i) => {
+    let usr = new UserModel(new User('Admin ' + i, 'royalties', ['admin']));
     usr.save((err) => { objectsave('Admin', err) })
 }
 
-for (let i = 1; i <= 25; i++){
-    let usr = new UserModel(new User('User ' + i, 'royalties', 'offline', ['user']));
+const users = (i) => {
+    let usr = new UserModel(new User('User ' + i, 'royalties', ['user']));
     usr.save((err) => { objectsave('User', err) })
 }
 
-for (let i = 1; i <= 100; i++){
-    let usr = new UserModel(new User('Broadcaster ' + i));
-    let caster = new BroadcasterModel(new Broadcaster([usr._id],'Broadcaster ' + i));
-    usr.broadcasts = [caster._id];
-
-    usr.save((err) => { objectsave('User', err) })
-    caster.save((err) => { objectsave('Broadcaster', err) })
+const offlineBroadcaster = (i) => {
+    new UserModel(new User('Broadcaster ' + i, 'royalties', ['broadcaster'])).save((err) => {objectsave('User', err)})
+    new BroadcasterModel(new Broadcaster('Broadcaster ' + i)).save((err) => {objectsave('Broadcaster', err)})
 }
 
-let systemRec = new SystemModel();
-systemRec.save((err) => { objectsave('System', err) });
+const publicBroadcaster = (i) => {
+    let usr = new UserModel(new User('Broadcaster ' + i, 'royalties', ['broadcaster'], true));
+    let caster = new BroadcasterModel(new Broadcaster('Broadcaster ' + i, ));
+    let chatroom = new ChatroomModel({
+        slug: caster.slug,
+        socket: 'crecercercercre',
+        username: caster.username
+    })
+
+    caster.users = [{
+        userid: usr._id,
+        slug: usr.slug,
+        username: usr.username,
+        isPrimary: true
+    }]
+
+    caster.room = chatroom._id
+
+    chatroom.images = caster.images
+    chatroom.tags = caster.tags
+    chatroom.topic = 'Chatroom Topic Goes Here'
+
+    usr.save((err) => {
+        objectsave('User', err)
+    })
+    caster.save((err) => {
+        objectsave('Broadcaster', err)
+    })
+    chatroom.save((err) => {
+        objectsave('Chatroom', err)
+    })
+}
+
+new SystemModel().save((err) => { objectsave('System', err) });
+
+for (let i = 1; i <= 50; i++) users(i)
+for (let i = 1; i <= 10; i++) admins(i)
+
+setTimeout(() => { console.log('start 1'); for (let i = 51; i <= 100; i++) offlineBroadcaster(i)}, 1000)
+setTimeout(() => { console.log('start 2');  for (let i = 101; i <= 150; i++) offlineBroadcaster(i)}, 5000)
+setTimeout(() => { console.log('start 3');  for (let i = 151; i <= 200; i++) offlineBroadcaster(i)}, 5000)
+setTimeout(() => { console.log('start 4');  for (let i = 1; i <= 25; i++) publicBroadcaster(i)}, 5000)
+
+setTimeout(() => { console.log('star t 5');  for (let i = 26; i <= 50; i++) publicBroadcaster(i)}, 5000)

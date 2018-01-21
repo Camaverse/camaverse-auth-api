@@ -7,13 +7,17 @@ var ChatRoomsSchema = new Schema({
     events: [],
     income: [],
     isAway: {type: Boolean, default: false, required: true},
-    show: {type: String, enum: ['public','private', 'vip']},
+    show: {type: String, enum: ['public','private', 'vip'], default: 'public'},
     slug: {type: String, required: true},
     socket: {type: String, required: true},
-    status: {enum: ['offline', 'online'], default: 'online', type: String},
+    isOnline: {
+        type: Boolean,
+        required: true,
+        default: true
+    },
     tags: [String],
     topic: String,
-    username: String,
+    username: {type: String, required: true},
     users: [],
     userSlugs: [String],
     images: {

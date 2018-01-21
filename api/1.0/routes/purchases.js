@@ -38,6 +38,7 @@ exports = module.exports = function(io) {
         socket = soc
 
         socket.on('buyCoins', (purchase, cb) => {
+            console.log('buycoins', purchase)
             const perUnit = getPerUnit(purchase.units)
             purchase = new Purchases(purchase)
             purchase.price = {
@@ -67,7 +68,10 @@ exports = module.exports = function(io) {
                         new: true
                     }
 
+                    console.log(qry)
+
                     Users.findOneAndUpdate(qry, update, options, (err, user) => {
+                        console.log(user)
                         if (err) cb({err})
                         else {
                             cb(user)

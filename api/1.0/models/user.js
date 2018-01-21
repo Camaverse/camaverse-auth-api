@@ -23,7 +23,7 @@ var UserSchema = new Schema({
     isLoggedIn: {
       type: Boolean,
       required: true,
-      default: true
+      default: false
     },
     logins: [],
     logouts: [],
@@ -40,12 +40,6 @@ var UserSchema = new Schema({
         type: String,
         unique: true
     },
-    status: {
-        type: String,
-        required: true,
-        default: 'offline',
-        enum: ['offline','online']
-    },
     username: {
         type: String,
         unique: true,
@@ -55,8 +49,7 @@ var UserSchema = new Schema({
         type: Number,
         default: 0,
         min: 0
-    },
-    broadcasts: [{ type: Schema.Types.ObjectId, ref: 'Broadcasts' }]
+    }
 },{
     timestamps: true
 });

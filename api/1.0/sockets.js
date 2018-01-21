@@ -39,6 +39,7 @@ exports = module.exports = function(io) {
         })
 
         socket.on('joinRoom', (room, user) => {
+            console.log(' --- join room emitted ---')
             socket.join(createRoomName(room));
         })
 
@@ -49,7 +50,8 @@ exports = module.exports = function(io) {
                 if (err) {
                     cb(err)
                 } else {
-                    io.in(msg.to._id).emit('transmitMsg', msg)
+                    let room = msg.to._id
+                    io.in(room).emit('transmitMsg', msg)
                     io.emit('transmitMsg', msg)
                     cb()
                 }

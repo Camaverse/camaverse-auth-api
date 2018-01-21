@@ -57,9 +57,9 @@ exports = module.exports = function(io) {
                                                 if (err) {
                                                     if(cb) cb({err})
                                                 } else {
-                                                    tip.balance = user.coins
-                                                    if (cb) cb(tip)
-                                                    socket.emit('transmitTip', tip)
+                                                    let resp = {tip, balance: user.coins.balance}
+
+                                                    io.emit('transmitTip', resp)
                                                 }
                                             })
                                         }

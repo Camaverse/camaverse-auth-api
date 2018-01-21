@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Broadcaster = require("../models/broadcaster");
 const Chatroom = require("../models/chatrooms");
+const chatRooms = require("./chatrooms.helpers")
 
 const ApiResponse = require('../helpers/ApiResponse')
 const Success = ApiResponse.SuccessResponse
@@ -54,32 +55,12 @@ exports = module.exports = function(io) {
                 if(err) cb({err})
                 else {
                     if (broadcaster.room) {
-                        let query = {_id: broadcaster.room}
-                        let update = {$push: {users: usr, userSlugs: usr.slug}}
-                        let options = {new: true}
-                        let fields = 'topic tags status isAway show users userSlugs'
-                        Chatroom.findOne(query, fields, (err, chatrooms) => {
-                            if (err) {
-                                cb(err)
+                        let _id = broadcaster.room
+                        chatRooms.addUserToRoom(_id, usr, null, socket, (chatrooms) => {
+                                let returnObj = {broadcaster, chatrooms}
+                                cb(returnObj)
                             }
-                            else if (chatrooms) {
-                                if (chatrooms.userSlugs.indexOf(usr.slug) == -1) {
-                                    chatrooms.userSlugs.push(usr.slug)
-                                    chatrooms.users.push(usr)
-                                }
-                                chatrooms.save((err, chatrooms) => {
-                                    if (err) cb({err})
-                                    else {
-                                        socket.join(chatrooms._id)
-                                        cb({broadcaster, chatrooms: [chatrooms]})
-                                        socket.in(chatrooms._id).emit('updateViewers', chatrooms)
-                                        io.emit('updateViewers', chatrooms)
-                                    }
-                                })
-                            } else {
-                                console.log('chatrooms not found')
-                            }
-                        })
+                        )
                     } else {
                         cb({broadcaster, chatrooms: []})
                     }
@@ -88,11 +69,11 @@ exports = module.exports = function(io) {
         })
 
         socket.on('broadcasterlist', (options, cb) => {
-            let search = { status: 'online'}
+            let search = { isOnline: true}
             if (options.tags){
                 if (options.tags === 'Top'){
                     qryOptions.sort = {xp: -1}
-                    qryOptions.select += ' xp';
+                    qryOptions.select += ' xp';``
                 }
                 else if (options.tags === 'Trending'){
                     qryOptions.sort = {viewers: -1}
@@ -108,7 +89,9 @@ exports = module.exports = function(io) {
                     search = {tags: options.tags}
                 }
             }
-            Chatroom.paginate(search, qryOptions, (err, users) => cb(users, options.tags))
+            Chatroom.paginate(search, qryOptions, (err, users) => {
+                cb(users, options.tags)
+            })
         })
     })
 

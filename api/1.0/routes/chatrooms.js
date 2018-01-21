@@ -3,6 +3,7 @@ const router = express.Router();
 const Broadcasters = require("../models/broadcaster");
 const ChatRooms = require("../models/chatrooms");
 const ChatMessages = require("../models/chatmessages");
+const chatRoom = require('./chatrooms.helpers')
 
 const ApiResponse = require('../helpers/ApiResponse');
 const Success = ApiResponse.SuccessResponse;
@@ -66,6 +67,7 @@ exports = module.exports = function(io) {
                 cr.save((err, cr) => {
                     if (err) cb(err)
                     else {
+                        console.log('join('+cr._id+')')
                         socket.join(cr._id)
                         cb([cr])
                         io.emit('showChange', [cr])
@@ -119,59 +121,18 @@ exports = module.exports = function(io) {
             })
         })
 
-        socket.on('leaveRoom', (obj) => {
-            let qry = { _id: obj.room }
-            let update = { $pull: { users: { slug: obj.user }, userSlugs: obj.user } }
-            ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, doc) => {
-                if (err) console.log({err})
-                else {
-                    let successEmit = { _id: obj.room, remove: [{ slug: obj.user }] }
-                    socket.leave(obj.room);
-                    socket.in(obj.room).emit('updateViewers', successEmit)
-                    io.emit('updateViewers', successEmit)
-                }
-            })
+        socket.on('leaveRoom', (data) => {
+            console.log('leave room', socket.id, data)
+            chatRoom.removeUserFromRoom(data.room, data.user, null, socket)
         })
     })
-
-    const apiSuccess = (res, status, data) => {
-        res.status(status).json(new Success(data))
-    }
-
-    const addUserToRoom = (res, doc_room, doc_msgs, user) => {
-        let successObj = {room: doc_room, messages: doc_msgs}
-        let successEmit = { room: doc_room._id, add: [user] }
-        socket.join(doc_room._id)
-        if (doc_room.userSlugs.indexOf(user.slug) === -1) {
-            doc_room.users.push(user)
-            doc_room.userSlugs.push(user.slug)
-            doc_room.save((err, doc) => {
-                if (err) res.status(500).json({err})
-                else {
-                    apiSuccess(res, 200, successObj)
-                    socket.in(doc_room._id).emit('updateViewers', successEmit)
-                }
-            })
-        } else {
-            apiSuccess(res, 200, successObj)
-            socket.in(doc_room._id).emit('updateViewers', successEmit)
-        }
-    }
 
     // POST: /v1.0/chatrooms/:id
     // Add users to a room
     router.post('/:id', (req, res) => {
-        let id = req.params.id
-        ChatRooms.findById(id,  (err,doc_room) => {
-            if (err) res.status(500).json({err})
-            else if (!doc_room) res.status(500).json({err: "no room found"})
-            else {
-                ChatMessages.find({'to.id': id}, (err, doc_msgs) => {
-                    if (req.body.user && doc_room) addUserToRoom(res, doc_room, doc_msgs, req.body.user )
-                    else apiSuccess(res, 200, {room: doc_room, messages: doc_msgs})
-                });
-            }
-        })
+        let _id = req.params.id
+        let user = req.body.user
+        chatRoom.addUserToRoom(_id, user, res, socket)
     })
 
     // GET: /v1.0/chatrooms/:slug/:show

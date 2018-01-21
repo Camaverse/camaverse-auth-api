@@ -12,12 +12,7 @@ var BroadcasterSchema = new Schema({
         type: String,
         unique: true
     },
-    status: {
-        type: String,
-        required: true,
-        default: 'offline',
-        enum: ['offline','online']
-    },
+    isOnline: {type: Boolean, required: true},
     room: { type: Schema.Types.ObjectId, ref: 'ChatRoom' },
     tags: [],
     username: {
@@ -29,6 +24,14 @@ var BroadcasterSchema = new Schema({
         type: String,
         unique: true
     },
+    users: [
+        {
+            userid: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+            slug: { type: String, required: true },
+            username: { type: String, required: true },
+            isPrimary: {type: Boolean, required: true, default: false}
+        }
+    ],
     xp: {
         type: Number,
         default: 0,
