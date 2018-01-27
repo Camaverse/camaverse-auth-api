@@ -31,6 +31,7 @@ class User {
     ) {
         this._id = new mongoose.Types.ObjectId();
         this.username = username;
+        this.usernameLower = username.toLowerCase()
         this.slug = slugify(username, {lower: true});
         this.email = this.slug + '@a.com';
         this.password = password;

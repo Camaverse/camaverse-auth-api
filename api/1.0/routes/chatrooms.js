@@ -8,7 +8,24 @@ const chatRoom = require('./chatrooms.helpers')
 const ApiResponse = require('../helpers/ApiResponse');
 const Success = ApiResponse.SuccessResponse;
 
-const qryOptions = { new: true, fields: 'username slug status tags approved images show isAway topic users userSlugs ' }
+const qryOptions = { new: true, fields: 'username slug isOnline tags approved images show isAway topic users userSlugs ' }
+
+const pad = (num) => (num < 10) ? `0${num}` : num;
+
+const nowDate = () => {
+    var date = new Date()
+
+    var day = date.getDate()
+    var month = pad(date.getMonth()+1)
+    var year = date.getFullYear()
+
+    var hour = date.getHours()
+    var min = pad(date.getMinutes()+1)
+    var sec = date.getSeconds()
+    var mil = date.getMilliseconds()
+
+    return `${year}-${month}-${day} ${hour}:${min}:${sec}.${mil}`
+}
 
 exports = module.exports = function(io) {
 
@@ -19,7 +36,7 @@ exports = module.exports = function(io) {
         socket.on('updateTopic', (obj, cb) => {
             let search = {_id: obj._id}
             let events = {
-                date: Date.now(),
+                date: nowDate(),
                 event: 'update topic',
                 topic: obj.topic
             }
@@ -38,7 +55,7 @@ exports = module.exports = function(io) {
         socket.on('updateTags', (obj, cb) => {
             let search = {_id: obj._id}
             let events = {
-                date: Date.now(),
+                date: nowDate(),
                 event: 'update tags',
                 topic: obj.tags
             }
@@ -77,15 +94,17 @@ exports = module.exports = function(io) {
         })
 
         socket.on('goAway', (slug, cb) => {
-            let qry = {show: 'public', status: 'online', slug}
+            let qry = {show: 'public', isOnline: true, slug}
             let events = {
-                date: Date.now(),
+                date: nowDate(),
                 event: 'away'
             }
             let update = {$set: {isAway: true}, $push: {events}}
             ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
                 if (err) cb(err)
+                else if (cr === null) console.log('CR NOT FOUND', qry, update)
                 else {
+                    console.log(cr)
                     cb([cr])
                     io.emit('showChange', [cr])
                 }
@@ -93,9 +112,9 @@ exports = module.exports = function(io) {
         })
 
         socket.on('resumeShow', (slug, cb) => {
-            let qry = {show: 'public', status: 'online', slug, isAway: true}
+            let qry = {show: 'public', isOnline: true, slug, isAway: true}
             let events = {
-                date: Date.now(),
+                date: nowDate(),
                 event: 'resume'
             }
             let update = {$set: {isAway: false}, $push: {events}}
@@ -110,7 +129,7 @@ exports = module.exports = function(io) {
 
         socket.on('goOffline', (_id, cb) => {
             let qry = {_id}
-            let updateObj = {endedAt: Date.now(), isAway: false, status: 'offline'}
+            let updateObj = {endedAt: nowDate(), isAway: false, isOnline: false}
             let update = {$set: updateObj}
             ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
                 if (err) cb(err)
@@ -122,7 +141,6 @@ exports = module.exports = function(io) {
         })
 
         socket.on('leaveRoom', (data) => {
-            console.log('leave room', socket.id, data)
             chatRoom.removeUserFromRoom(data.room, data.user, null, socket)
         })
     })

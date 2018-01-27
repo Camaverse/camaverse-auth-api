@@ -68,5 +68,16 @@ get(function() { return {
 }
 });
 
+BroadcasterSchema.virtual('broadcasterInit').
+get(function() { return {
+    slug: this.slug,
+    tags: this.tags,
+    username: this.username,
+    users: this.users,
+    xp: this.xp,
+    coins: this.coins.balance
+}
+});
+
 
 module.exports = mongoose.model('Broadcaster', BroadcasterSchema);

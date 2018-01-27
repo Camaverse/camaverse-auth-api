@@ -12,16 +12,16 @@ exports = module.exports = function(io) {
         socket.on('connect-guest', (cb) => {
             let guestNum = null
             let guest = {
-                ip: socket.handshake.address,
-                isLoggedIn: false,
-                roles: ['guest'],
-                slug: null,
-                status: 'online',
-                username: null,
-                coins: {
-                    balance: 0
-                },
-                xp: 0
+                // ip: socket.handshake.address,
+                // isLoggedIn: false,
+                // roles: ['guest'],
+                // slug: null,
+                // status: 'online',
+                // username: null,
+                // coins: {
+                //     balance: 0
+                // },
+                // xp: 0
             }
 
             systemStore.find({}, (err, rec) => {

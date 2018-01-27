@@ -27,7 +27,7 @@ router.use('/tips', require('./routes/tips')(io));
 
 router.get('/logout/:username', (req, res) => {
 
-  const qry = {username: req.params.username};
+  const qry = {username : req.params.username};
   const update = {isLoggedIn: false, status: 'offline', '$push': { logouts: Date.now() }}
   const options = { new: true };
 
@@ -64,7 +64,7 @@ router.post('/signup', function(req, res) {
 
 router.post('/signin', function(req, res) {
   User.findOne({
-    username: req.body.username
+    usernameLower: req.body.username.toLowerCase()
   }, function(err, user) {
     if (err) throw err;
 

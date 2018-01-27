@@ -45,6 +45,10 @@ var UserSchema = new Schema({
         unique: true,
         required: true
     },
+    usernameLower: {
+        type: String,
+        required: true
+    },
     xp: {
         type: Number,
         default: 0,
@@ -64,7 +68,7 @@ get(function() { return {
     status: this.status,
     isLoggedIn: this.isLoggedIn,
     xp: this.xp,
-    coins: this.coins,
+    coins: this.coins.balance,
     disableOfflineWarning: this.disableOfflineWarning
 }
 });
@@ -77,6 +81,7 @@ UserSchema.pre('save', function (next) {
     var user = this;
     if (this.isModified('username') || this.isNew) {
         this.slug = slugify(this.username, {lower: true})
+        this.usernameLower = this.username.toLowerCase()
     }
     if (this.isModified('password') || this.isNew) {
         bcrypt.genSalt(10, function (err, salt) {

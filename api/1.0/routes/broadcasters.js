@@ -24,11 +24,11 @@ exports = module.exports = function(io) {
             Broadcaster.findOne(qry, (err, broadcaster) => {
                 if(err) cb({err})
                 else {
-                    let qry2 = {slug, status: 'online', show: 'public'}
+                    let qry2 = {slug, isOnline: true, show: 'public'}
                     Chatroom.find(qry2, (err, chatrooms) => {
                         if (err) cb({err})
                         else {
-                            cb({broadcaster, chatrooms})
+                            cb({broadcaster: broadcaster.broadcasterInit, chatrooms})
                         }
                     })
                 }
