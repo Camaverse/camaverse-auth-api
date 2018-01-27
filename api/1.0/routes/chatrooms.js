@@ -84,7 +84,6 @@ exports = module.exports = function(io) {
                 cr.save((err, cr) => {
                     if (err) cb(err)
                     else {
-                        console.log('join('+cr._id+')')
                         socket.join(cr._id)
                         cb([cr])
                         io.emit('showChange', [cr])
@@ -93,8 +92,8 @@ exports = module.exports = function(io) {
             })
         })
 
-        socket.on('goAway', (slug, cb) => {
-            let qry = {show: 'public', isOnline: true, slug}
+        socket.on('goAway', (_id, cb) => {
+            let qry = {_id}
             let events = {
                 date: nowDate(),
                 event: 'away'
@@ -104,15 +103,14 @@ exports = module.exports = function(io) {
                 if (err) cb(err)
                 else if (cr === null) console.log('CR NOT FOUND', qry, update)
                 else {
-                    console.log(cr)
                     cb([cr])
                     io.emit('showChange', [cr])
                 }
             })
         })
 
-        socket.on('resumeShow', (slug, cb) => {
-            let qry = {show: 'public', isOnline: true, slug, isAway: true}
+        socket.on('resumeShow', (_id, cb) => {
+            let qry = {_id}
             let events = {
                 date: nowDate(),
                 event: 'resume'
