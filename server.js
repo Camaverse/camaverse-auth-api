@@ -36,13 +36,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(passport.initialize());
 
 //API Versions
-const apiVersions = ['1.0'];
-
-for (let version in apiVersions){
-    let apiVersion = require('./api/'+apiVersions[version])(io);
-    let path = '/'+apiVersions[version];
-    app.use(path, apiVersion);
-}
+const APIVersions = ['1.0'];
+APIVersions.forEach(v => {
+    // example:
+    // domain/1.0/
+    console.log(`/${v}`, `./api/${v}/`);
+    app.use(`/${v}`, require(`./api/${v}/`)(io));
+})
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
