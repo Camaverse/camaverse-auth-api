@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
-var User = require("../models/user");
+var User = require("../users/users.model");
+
 
 var ApiResponse = require('../helpers/ApiResponse')
 const Success = ApiResponse.SuccessResponse

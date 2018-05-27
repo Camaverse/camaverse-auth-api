@@ -2,9 +2,9 @@ var passport = require('passport');
 var express = require('express');
 var router = express.Router();
 var Tips = require("../models/tips");
-var Users = require("../models/user");
-var Broadcasters = require("../models/broadcaster");
+var User = require("../users/users.model");
 
+var Broadcasters = require("../models/broadcaster");
 var ApiResponse = require('../helpers/ApiResponse')
 
 exports = module.exports = function(io) {

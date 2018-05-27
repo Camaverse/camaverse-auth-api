@@ -1,7 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var Purchases = require("../models/purchases");
-var Users = require("../models/user");
+var User = require("../users/users.model");
+
 
 const getPerUnit = (units) => {
     /*
