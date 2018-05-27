@@ -1,20 +1,24 @@
 const mongoose = require('mongoose');
-const passport = require('passport');
-require('./passport')(passport);
-const jwt = require('jsonwebtoken');
+// const passport = require('passport');
+// require('./passport')(passport);
+// const jwt = require('jsonwebtoken');
 const express = require('express');
 const router = express.Router();
-const User = require("./models/user");
 
 mongoose.connect(process.env.DB_CONNECT);
 
+const modelRoutes = ['users'];
+
 exports = module.exports = function(io) {
 
-   require('./sockets')(io)
+    modelRoutes.forEach((model) => {
+        router.use(`/${model}`, require(`./${model}/${model}.routes`)(io))
+    })
+
+    require('./sockets')(io)
 
     let socket = null;
 
-router.use('/users', require('./routes/users'));
 router.use('/broadcasters', require('./routes/broadcasters')(io));
 router.use('/members', require('./routes/members'));
 router.use('/admins', require('./routes/admins'));

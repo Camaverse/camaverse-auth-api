@@ -2,7 +2,7 @@ require('dotenv').config()
 
 const mongoose = require('mongoose');
 const slugify = require('slugify');
-const UserModel = require("./models/user");
+const UserModel = require("./models/user.model");
 const BroadcasterModel = require("./models/broadcaster")
 const ChatroomModel = require("./models/chatrooms")
 const SystemModel = require("./models/system");
