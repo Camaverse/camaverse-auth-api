@@ -44,6 +44,10 @@ APIVersions.forEach(v => {
     app.use(`/${v}`, require(`./api/${v}/`)(io));
 })
 
+app.get('/hello', function (req, res) {
+    res.send('GET request to the homepage')
+})
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
