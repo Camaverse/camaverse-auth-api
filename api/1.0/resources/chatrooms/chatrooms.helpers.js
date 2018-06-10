@@ -1,5 +1,5 @@
-const ChatRooms = require("../models/chatrooms");
-const ChatMessages = require("../models/chatmessages");
+const ChatRooms = require("./chatrooms.model");
+const ChatMessages = require("../../models/chatmessages");
 
 let cb = null
 let res = null
@@ -29,8 +29,7 @@ const addUserToRoom = (_id, usr, result, soc, cb) => {
     // Build the update obj
     let update = {
         $push: {
-            users: user,
-            userSlugs: user.slug
+            users: user
         }
     }
 
@@ -55,8 +54,7 @@ const removeUserFromRoom = (_id, usr, result, soc, cb) => {
     // Build the update obj
     let update = {
         $pull: {
-            users: { slug: user.slug },
-            userSlugs: user.slug
+            users: { slug: user.slug }
         }
     }
 

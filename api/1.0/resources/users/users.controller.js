@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require("./users.model");
-const {success, error} = require('../helpers/ApiResponse');
+const SystemModel = require('../system/system.model')
+const slugify = require('slugify')
+const {success, error} = require('../../helpers/ApiResponse');
 
 const getJWTAndUser = (user) => {
     return new Promise(
@@ -14,15 +16,22 @@ const getJWTAndUser = (user) => {
 }
 
 const respond = (err, docs, res) => {
+
     let response;
     if (err) response = new error(err.message, docs);
     else response = new success(docs);
 
-    if (err && res && res.status)res.status(500).json(response)
-    else if (err && res)res(response)
-    else if (res && res.status) res.status(200).json(response)
-    else if (res) res(response)
-    else console.log(response)
+    if (err && res && res.status) {
+        res.status(500).json(response)
+    } else if (err && res) {
+        res(response)
+    } else if (res && res.status) {
+        res.status(200).json(response)
+    } else if (res) {
+        res(err, response)
+    } else {
+        console.log(response)
+    }
 }
 
 const updateUserOnLogin = (user) => {
@@ -65,7 +74,6 @@ module.exports = {
         usr.save((err, docs) =>
             respond(err, (docs && docs.createInfo) ? docs.createInfo : null, res));
     },
-
     getCoins (req, res) {
         let usernameLower = (req && req.query && req.query.username) ? req.query.username :
             (req && req.body && req.body.username) ? req.body.username : null;
@@ -75,12 +83,27 @@ module.exports = {
             .then((user) => respond(null, user.coins.balance, res))
             .catch((err) => respond(err, null, res))
     },
+    guestInit (cb) {
+        SystemModel.find({}, (err, rec) => {
+            rec = rec[0]
+            if (!err) {
+                const guestNum = rec.guestNo;
+                const username = 'Guest ' + guestNum;
 
-    findAdmins (req, res) {
-       User.find({roles: "admin"})
-           .then((docs) => respond(null, docs, res))
-           .catch((err) => respond(err, docs, res))
+                let guest = {
+                    // ip: socket.handshake.address,
+                    // isLoggedIn: false,
+                    // roles: ['guest'],
+                    slug: slugify(username, {lower: true}),
+                    // status: 'online',
+                    username
+                }
+                if (cb) cb(null, guest);
 
+                rec.guestNo++
+                rec.save();
+            }
+        });
     },
     findAll (req, res) {
        User.find({})
@@ -100,7 +123,7 @@ module.exports = {
 
     login (req, res) {
         if (validate.login(req.body)) {
-            const usernameLower = req.body.username.toLowerCase()
+            const usernameLower = req.body.username.toLowerCase().trim()
             const password = req.body.password
 
             User.findOne({usernameLower})
@@ -111,12 +134,10 @@ module.exports = {
                 .catch((err) => respond(err, null, res))
         }
     },
-
     logout (req, res) {
-
         let usernameLower = (req && req.query && req.query.username) ? req.query.username :
             (req && req.body && req.body.username) ? req.body.username : null;
-        usernameLower = usernameLower.toLowerCase()
+        usernameLower = usernameLower.toLowerCase().trim()
         const qry = {usernameLower};
         const update = {isLoggedIn: false, status: 'offline', '$push': { logouts: Date.now() }}
         const options = { new: true };
@@ -124,6 +145,53 @@ module.exports = {
         User.findOneAndUpdate(qry, update, options)
             .then((user) => respond(null, user, res))
             .catch((err) => respond(err, null, res))
+    },
+    signup (req, res) {
+        if (!req.body.username || !req.body.password || !req.body.email) {
+            res.json({success: false, msg: 'Please pass username and email and password.'});
+        } else {
+            var newUser = new User({
+                email: req.body.email,
+                username: req.body.username,
+                password: req.body.password
+            });
+
+            if (req.body.roles) newUser.roles = [req.body.roles];
+
+            // save the user
+            newUser.save(function(err) {
+                if (err) {
+                    return res.status(500).json({success: false, msg: err});
+                }
+                res.json({success: true, msg: 'Successful created new user.'});
+            });
+        }
+    },
+
+    init (user, cb) {
+        if (!user || !user.username) respond({err: 'Invalid request'}, null, cb)
+        else {
+            const usernameLower = user.username.toLowerCase().trim()
+            User.findOne({usernameLower})
+                .then((user) => {
+                    return respond(null, user.loginInfo, cb)
+                })
+                .catch((err) => respond(err, null, cb))
+        }
+    },
+
+    logout (req, res) {
+        const qry = {username : req.params.username};
+        const update = {isLoggedIn: false, status: 'offline', '$push': { logouts: Date.now() }}
+        const options = { new: true };
+
+        User.findOneAndUpdate(qry, update, options, (err) => {
+                if (err) {
+                    return res.status(500).json({success: false, msg: err});
+                }else {
+                    return res.status(200).json({success: true });
+            }
+        })
     }
 
 }

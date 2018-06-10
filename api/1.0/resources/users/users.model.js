@@ -3,7 +3,7 @@ const mongoosePaginate = require('mongoose-paginate');
 const Schema = mongoose.Schema;
 const bcrypt = require('bcrypt-nodejs');
 const slugify = require('slugify');
-const mongoosePlugins = require('../helpers/MongoosePlugins');
+const mongoosePlugins = require('../../helpers/MongoosePlugins');
 
 const UserSchema = new Schema({
     disableOfflineWarning: {type: Boolean, default: false},

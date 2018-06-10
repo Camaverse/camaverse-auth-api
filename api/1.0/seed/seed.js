@@ -2,21 +2,20 @@ require('dotenv').config()
 
 const mongoose = require('mongoose');
 const slugify = require('slugify');
-const UserModel = require("./users/users.model");
-const BroadcasterModel = require("./models/broadcaster")
-const ChatroomModel = require("./models/chatrooms")
-const SystemModel = require("./models/system");
+const UserModel = require("../resources/users/users.model");
+const BroadcasterModel = require("../resources/broadcasters/broadcasters.model")
+const ChatroomModel = require("../resources/chatrooms/chatrooms.model")
+const SystemModel = require("../models/system");
 const org_tags = ["abc","def","hij","klm","nop","qrs","tuv","wxy","z"];
 
 let tags = org_tags.join(',').split(',');
 
-
 console.log(process.env.DB_CONNECT);
-
 
 for (let i = 0; i < 10; i ++) {
     for (let tag in org_tags) {
-        tags.push(org_tags[tag] + i)
+        let newTag = org_tags[tag] + i
+        tags.push(newTag)
     }
 }
 
@@ -64,7 +63,8 @@ class Broadcaster {
         const _loop = this.randomIndex(8, 1);
         for (let i = 0; i < _loop; i++){
             const _index = this.randomIndex(tags.length, 0);
-            tag_list.push(tags[_index]);
+            let tag = tags[_index]
+            if (tag_list.indexOf(tag) === -1) tag_list.push(tag);
         }
         return tag_list;
     }
@@ -83,7 +83,6 @@ const objectsave = (type, err) => {
         console.log(type + ' Saved');
     }
 }
-
 
 const admins = (i) => {
     let usr = new UserModel(new User('Admin ' + i, 'royalties', ['admin']));
@@ -109,12 +108,12 @@ const publicBroadcaster = (i) => {
         username: caster.username
     })
 
-    caster.users = [{
-        userid: usr._id,
+    caster.users = {};
+    caster.users[usr._id] = {
         slug: usr.slug,
         username: usr.username,
         isPrimary: true
-    }]
+    }
 
     caster.room = chatroom._id
 

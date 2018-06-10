@@ -18,8 +18,7 @@ var ChatRoomsSchema = new Schema({
     tags: [String],
     topic: String,
     username: {type: String, required: true},
-    users: [],
-    userSlugs: [String],
+    users: {},
     images: {
         broadcasterGrid: String
     }
