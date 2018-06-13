@@ -104,35 +104,27 @@ const publicBroadcaster = (i) => {
     let caster = new BroadcasterModel(new Broadcaster('Broadcaster ' + i, ));
     let chatroom = new ChatroomModel({
         slug: caster.slug,
+        broadcasterID: caster._id,
         socket: 'crecercercercre',
         username: caster.username
     })
 
-    caster.users = {};
-    caster.users[usr._id] = {
-        slug: usr.slug,
-        username: usr.username,
-        isPrimary: true
-    }
-
     caster.room = chatroom._id
-
     chatroom.images = caster.images
     chatroom.tags = caster.tags
     chatroom.topic = 'Chatroom Topic Goes Here'
 
-    usr.save((err) => {
-        objectsave('User', err)
-    })
-    caster.save((err) => {
-        objectsave('Broadcaster', err)
-    })
-    chatroom.save((err) => {
-        objectsave('Chatroom', err)
-    })
+    usr.save()
+        .then(caster.save())
+        .then(chatroom.save())
+        .catch((err) => console.log('PUBLIC BROADCASTERSAVE ERROR', err))
 }
 
+/*
 new SystemModel().save((err) => { objectsave('System', err) });
+*/
+
+userCount = 50;
 
 for (let i = 1; i <= 50; i++) users(i)
 for (let i = 1; i <= 10; i++) admins(i)
@@ -140,6 +132,7 @@ for (let i = 1; i <= 10; i++) admins(i)
 setTimeout(() => { console.log('start 1'); for (let i = 51; i <= 100; i++) offlineBroadcaster(i)}, 1000)
 setTimeout(() => { console.log('start 2');  for (let i = 101; i <= 150; i++) offlineBroadcaster(i)}, 5000)
 setTimeout(() => { console.log('start 3');  for (let i = 151; i <= 200; i++) offlineBroadcaster(i)}, 5000)
+
 setTimeout(() => { console.log('start 4');  for (let i = 1; i <= 25; i++) publicBroadcaster(i)}, 5000)
 
 setTimeout(() => { console.log('star t 5');  for (let i = 26; i <= 50; i++) publicBroadcaster(i)}, 5000)
