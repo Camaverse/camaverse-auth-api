@@ -29,7 +29,8 @@ const nowDate = () => {
 module.exports = {
     watchInit (watch, socket, cb) {
         let qry = {slug: watch.broadcaster, isOnline: true}
-        ChatRooms.find(qry, 'slug socket username topic users tags show isOnline isAway', (err, rooms) => {
+        const fields = 'slug broadcasterID socket username topic users tags show isOnline isAway'
+        ChatRooms.find(qry, fields, (err, rooms) => {
             if (rooms){
                 let roomsLength = rooms.length;
                 roomsArr = [];
@@ -66,8 +67,6 @@ module.exports = {
                             cb(err)
                             console.log({error: err})
                         } else {
-                            console.log('newRoom',newRoom)
-
                             let onlineUsers = {}
                             const usrs = newRoom.users;
                             for (let i in usrs){
@@ -127,7 +126,8 @@ module.exports = {
         createShow (obj, cb) {
 
             Broadcasters.findOne({slug: obj.slug}, (err, broadcaster) => {
-                let newShow = {show: obj.show, slug: obj.slug, username: obj.username, images: broadcaster.images, socket: socket.id}
+                let newShow = {show: obj.show, broadcasterID: obj._id,
+                    slug: obj.slug, username: obj.username, images: broadcaster.images, socket: socket.id}
                 let cr = new ChatRooms(newShow)
                 broadcaster.room = cr._id
                 broadcaster.save((err)=> {

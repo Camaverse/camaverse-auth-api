@@ -9,6 +9,7 @@ var ChatRoomsSchema = new Schema({
     isAway: {type: Boolean, default: false, required: true},
     show: {type: String, enum: ['public','private', 'vip'], default: 'public'},
     slug: {type: String, required: true},
+    broadcasterID: {type: String, required: true}, 
     socket: {type: String, required: true},
     isOnline: {
         type: Boolean,
