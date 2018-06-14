@@ -53,8 +53,9 @@ module.exports = function(io) {
                         if (err) {
                             if(cb) cb({err})
                         } else {
-                            let resp = {tip, balance: user.coins.balance}
-
+                            const balance = user.coins.balance;
+                            const resp = {tip, balance}
+                            if(cb)cb({balance})
                             io.emit('transmitTip', resp)
                     }
                 })
