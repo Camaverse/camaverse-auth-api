@@ -16,6 +16,7 @@ var ChatRoomsSchema = new Schema({
         required: true,
         default: true
     },
+    messages: [],
     tags: [String],
     topic: String,
     username: {type: String, required: true},

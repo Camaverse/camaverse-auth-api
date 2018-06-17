@@ -1,5 +1,5 @@
 const ChatRooms = require("./chatrooms.model");
-const ChatMessages = require("../../models/chatmessages");
+const ChatMessages = require("../chatmessages/chatmessages.model");
 
 let cb = null
 let res = null

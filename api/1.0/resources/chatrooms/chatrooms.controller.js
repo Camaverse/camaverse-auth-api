@@ -1,7 +1,7 @@
 const express = require('express');
 const Broadcasters = require("../broadcasters/broadcasters.model");
 const ChatRooms = require("./chatrooms.model");
-const ChatMessages = require("../../models/chatmessages");
+const ChatMessages = require("../chatmessages/chatmessages.model");
 const chatRoom = require('./chatrooms.helpers')
 
 const ApiResponse = require('../../helpers/ApiResponse');
@@ -30,10 +30,14 @@ module.exports = {
     watchInit (watch, socket, cb) {
         let qry = {slug: watch.broadcaster, isOnline: true}
         const fields = 'slug broadcasterID socket username topic users tags show isOnline isAway'
-        ChatRooms.find(qry, fields, (err, rooms) => {
-            if (rooms){
+
+        ChatRooms.find(qry, fields)
+            .then((rooms) => {
+
+                console.log(rooms)
+
                 let roomsLength = rooms.length;
-                roomsArr = [];
+                let roomsArr = [];
                 let start = Date.now();
                 const log = {
                     start,
@@ -62,28 +66,36 @@ module.exports = {
                     ref.inRoom = true;
 
                     room.markModified('users');
-                    room.save((err, newRoom) => {
-                        if (err) {
-                            cb(err)
-                            console.log({error: err})
-                        } else {
-                            let onlineUsers = {}
+                    room.save()
+                        .then((newRoom) => {
                             const usrs = newRoom.users;
+                            let onlineUsers = {}
+
+                            console.log('join: ', newRoom._id)
+                            socket.join(newRoom._id)
+
                             for (let i in usrs){
                                 if (usrs[i].inRoom) onlineUsers[i] = usrs[i];
                             }
                             newRoom.users = onlineUsers;
 
-                            roomsArr.push(newRoom)
-                            --roomsLength
-                            if (!roomsLength) {
-                                cb(roomsArr)
-                            }
-                        }
-                    })
+                            ChatMessages.find({to: newRoom._id})
+                                .then((messages) => {
+                                    newRoom.messages = messages
+                                    roomsArr.push(newRoom)
+                                    --roomsLength
+                                    if (!roomsLength) {
+                                        cb(roomsArr)
+                                    }
+                                })
+                        })
+                        .catch((error) => {
+                            cb(err)
+                            console.log({error})
+                        })
+
                 })
-            }
-        })
+            } )
     },
     updateTopic (obj, cb) {
             let search = {_id: obj._id}

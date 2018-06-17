@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
-const modelRoutes = ['users', 'purchases', 'broadcasters', 'chatrooms', 'tips'];
+const modelRoutes = ['users', 'purchases', 'broadcasters', 'chatrooms', 'chatmessages', 'tips'];
 mongoose.connect(process.env.DB_CONNECT);
 
 exports = module.exports = function(io) {
