@@ -15,8 +15,6 @@ const server = http.createServer(app);
 const io = require('socket.io').listen(server);
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
 app.set('port', port);
 
 app.use(function(req, res, next) {
