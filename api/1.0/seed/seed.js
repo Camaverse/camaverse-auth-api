@@ -5,7 +5,7 @@ const slugify = require('slugify');
 const UserModel = require("../resources/users/users.model");
 const BroadcasterModel = require("../resources/broadcasters/broadcasters.model")
 const ChatroomModel = require("../resources/chatrooms/chatrooms.model")
-const SystemModel = require("../models/system");
+const SystemModel = require("../resources/system/system.model");
 const org_tags = ["abc","def","hij","klm","nop","qrs","tuv","wxy","z"];
 
 let tags = org_tags.join(',').split(',');
@@ -120,9 +120,7 @@ const publicBroadcaster = (i) => {
         .catch((err) => console.log('PUBLIC BROADCASTERSAVE ERROR', err))
 }
 
-/*
 new SystemModel().save((err) => { objectsave('System', err) });
-*/
 
 userCount = 50;
 
