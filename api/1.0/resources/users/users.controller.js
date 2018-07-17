@@ -125,8 +125,12 @@ module.exports = {
         if (validate.login(req.body)) {
             const usernameLower = req.body.username.toLowerCase().trim()
             const password = req.body.password
+            let qry = { usernameLower }
+            if (req.body.roles) {
+                qry.roles = req.body.roles;
+            }
 
-            User.findOne({usernameLower})
+            User.findOne(qry)
                 .then((user) => validate.password(user, password))
                 .then(updateUserOnLogin)
                 .then(getJWTAndUser)
