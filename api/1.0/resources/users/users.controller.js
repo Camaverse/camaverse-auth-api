@@ -85,24 +85,29 @@ module.exports = {
     },
     guestInit (cb) {
         SystemModel.find({}, (err, rec) => {
-            rec = rec[0]
             if (!err) {
-                const guestNum = rec.guestNo;
-                const username = 'Guest ' + guestNum;
+                if (rec.length) {
+                    rec = rec[0]
+                    const guestNum = rec.guestNo;
+                    const username = 'Guest ' + guestNum;
+                    const slug = slugify(username, {lower: true});
 
-                let guest = {
-                    // ip: socket.handshake.address,
-                    // isLoggedIn: false,
-                    // roles: ['guest'],
-                    slug: slugify(username, {lower: true}),
-                    // status: 'online',
-                    username
+                    let guest = {
+                        // ip: socket.handshake.address,
+                        // isLoggedIn: false,
+                        // roles: ['guest'],
+                        slug,
+                        // status: 'online',
+                        username
+                    }
+                    if (cb) cb(null, guest);
+                    rec.guestNo++
+                    rec.save();
+                } else {
+                    cb('System Not Found', null);
                 }
-                if (cb) cb(null, guest);
-
-                rec.guestNo++
-                rec.save();
             }
+
         });
     },
     findAll (req, res) {
