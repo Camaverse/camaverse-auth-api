@@ -9,7 +9,7 @@ const Success = ApiResponse.SuccessResponse
 
 const broadcasterGridFields = 'username slug status tags approved images show isAway topic';
 const qryOptions = {
-    limit: 200,
+    limit: 100,
     select: broadcasterGridFields
 };
 
@@ -41,27 +41,33 @@ module.exports = {
     list (options, cb) {
         let search = { isOnline: true}
         if (options.tags){
-            if (options.tags === 'Top'){
+            const tags = options.tags.toLowerCase()
+            if (tags === 'top'){
                 qryOptions.sort = {xp: -1}
                 qryOptions.select += ' xp';
             }
-            else if (options.tags === 'Trending'){
+            else if (tags === 'popular'){
                 qryOptions.sort = {viewers: -1}
                 qryOptions.select += ' viewers';
             }
-            else if (options.tags === 'New'){
-                const d = new Date();
-                d.setMonth(d.getMonth() - 4);
-                search = {approved: {$gte: new Date(d)}}
-            }
             else {
-                options.tags = options.tags.toLowerCase()
-                search = {tags: options.tags}
+                search = {tags}
             }
         }
-        Chatroom.paginate(search, qryOptions, (err, users) => {
-            cb(users, options.tags)
-        })
+        Chatroom.paginate(search, qryOptions)
+            .then((chatrooms) => {
+                if (chatrooms.docs.length < 20) {
+                    search.isOnline = false;
+                    Broadcaster.paginate(search, qryOptions)
+                        .then((broadcasters) => {
+                            cb({online: chatrooms, offline: broadcasters}, options.tags)
+                        })
+                        .catch((err) => cb({online: chatrooms}, options.tags))
+                } else {
+                    cb({online: chatrooms}, options.tags)
+                }
+            })
+            .catch((err) => cb(err, options.tags) )
     },
     getBroadcaster (req, res) {
         const fields = 'slug username topic approved xp viewers tags status images room';
