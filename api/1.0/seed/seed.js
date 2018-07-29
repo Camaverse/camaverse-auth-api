@@ -7,6 +7,97 @@ const BroadcasterModel = require("../resources/broadcasters/broadcasters.model")
 const ChatroomModel = require("../resources/chatrooms/chatrooms.model")
 const SystemModel = require("../resources/system/system.model");
 const org_tags = ["abc","def","hij","klm","nop","qrs","tuv","wxy","z"];
+const counts = {
+    user: 10,
+    admin: 3,
+    broadcaster: 200,
+    onlineBroadcaster: 50
+};
+const totals = {
+    user: 10,
+    admin: 3,
+    broadcaster: 200,
+    onlineBroadcaster: 50
+}
+const createMethods = {
+    user (usr, type, methodType, num, offset, resolve) {
+        usr.then((user) => {
+            console.log(`${user.username}  saved.`)
+            recNext(resolve, type, methodType, offset);
+        })
+        .catch((err) => {
+            console.log(`${type} ${num} not saved.`);
+            console.log(err);
+            console.log('');
+            recNext(resolve, type, methodType, offset);
+        })
+    },
+    broadcaster (usr, type, methodType, num, offset, resolve) {
+        usr.then((user) => {
+            console.log(`${user.username}  saved.`)
+            return new BroadcasterModel(new Broadcaster(user.username)).save()
+        })
+        .then((broadcaster) => recNext(resolve, type, methodType, offset))
+        .catch((err) => {
+            console.log(`${type} ${num} not saved.`);
+            console.log(err);
+            console.log('');
+            recNext(resolve, type, methodType, offset);
+        })
+    },
+    onlineBroadcaster (usr, type, methodType, num, offset, resolve) {
+        usr.then((user) => {
+            console.log(`${user.username} user saved.`)
+            let broadcaster = new BroadcasterModel(new Broadcaster(user.username))
+            let chatroom = new ChatroomModel({
+                slug: broadcaster.slug,
+                broadcasterID: broadcaster._id,
+                socket: 'crecercercercre',
+                username: broadcaster.username,
+                topic: 'Chatroom Topic Goes Here',
+                images: broadcaster.images,
+                tags: broadcaster.tags
+            })
+            broadcaster.room = chatroom._id
+            return {broadcaster, chatroom}
+        })
+        .then(({broadcaster, chatroom}) => {
+            return new Promise ((resolve, reject) => {
+                broadcaster.save()
+                    .then((caster) => resolve(chatroom))
+                    .catch((err) => {
+                        console.log(`${type} ${num} broadcaster not saved.`);
+                        console.log(err);
+                        console.log('');
+                        recNext(resolve, type, methodType, offset);
+                    })
+            })
+        })
+        .then ((chatroom) => {
+            return new Promise ((resolve, reject) => {
+                chatroom.save()
+                    .then((chatroom) => {
+                        console.log(`chatroom saved.`)
+                        recNext(resolve, type, methodType, offset);
+                    } )
+                    .catch((err) => {
+                        console.log(`${type} ${num} not saved.`);
+                        console.log(err);
+                        console.log('');
+                        recNext(resolve, type, methodType, offset);
+                    })
+            })
+        })
+        .catch((err) => {
+            console.log(`${type} ${num} not saved.`);
+            console.log(err);
+            console.log('');
+            recNext(resolve, type, methodType, offset);
+        })
+    }
+}
+
+createMethods.admin = createMethods.user;
 
 let tags = org_tags.join(',').split(',');
 
@@ -76,61 +167,53 @@ class Broadcaster {
 
 mongoose.connect(process.env.DB_CONNECT);
 
-const objectsave = (type, err) => {
+const objectsave = (err) => {
     if (err) {
-        console.log(type + ' not Saved: ', err);
-    } else {
-        console.log(type + ' Saved');
+        console.log(err)
     }
 }
 
-const admins = (i) => {
-    let usr = new UserModel(new User('Admin ' + i, 'royalties', ['admin']));
-    usr.save((err) => { objectsave('Admin', err) })
+const recNext = (resolve, type, methodType, offset) => {
+    if (counts[methodType]) {
+        counts[methodType]--
+        recordsLoop(resolve, type, methodType, offset);
+    }
 }
 
-const users = (i) => {
-    let usr = new UserModel(new User('User ' + i, 'royalties', ['user']));
-    usr.save((err) => { objectsave('User', err) })
+const recordsLoop = (resolve, type, methodType, offset) => {
+    if (counts[methodType]) {
+        const num = totals[methodType] - counts[methodType];
+        const numTtl = num + offset;
+        const usr = new UserModel(new User(`${type} ${numTtl}`, 'royalties', [type])).save();
+        createMethods[methodType](usr, type, methodType, num, offset, resolve)
+    } else {
+        console.log('complete')
+        resolve()
+    }
 }
 
-const offlineBroadcaster = (i) => {
-    new UserModel(new User('Broadcaster ' + i, 'royalties', ['broadcaster'])).save((err) => {objectsave('User', err)})
-    new BroadcasterModel(new Broadcaster('Broadcaster ' + i)).save((err) => {objectsave('Broadcaster', err)})
-}
-
-const publicBroadcaster = (i) => {
-    let usr = new UserModel(new User('Broadcaster ' + i, 'royalties', ['broadcaster'], true));
-    let caster = new BroadcasterModel(new Broadcaster('Broadcaster ' + i, ));
-    let chatroom = new ChatroomModel({
-        slug: caster.slug,
-        broadcasterID: caster._id,
-        socket: 'crecercercercre',
-        username: caster.username
+const recsStart = (type, methodType, offset = 0) => {
+    return new Promise(resolve => {
+       recordsLoop(resolve, type, methodType, offset)
     })
-
-    caster.room = chatroom._id
-    chatroom.images = caster.images
-    chatroom.tags = caster.tags
-    chatroom.topic = 'Chatroom Topic Goes Here'
-
-    usr.save()
-        .then(caster.save())
-        .then(chatroom.save())
-        .catch((err) => console.log('PUBLIC BROADCASTERSAVE ERROR', err))
 }
 
-new SystemModel().save((err) => { objectsave('System', err) });
+const disconnect = () => {
+    process.exit();
+}
 
-userCount = 50;
+BroadcasterModel.remove((err) => { console.log(err); });
+SystemModel.remove((err) => { console.log(err); });
+UserModel.remove((err) => { console.log(err); });
 
-for (let i = 1; i <= 50; i++) users(i)
-for (let i = 1; i <= 10; i++) admins(i)
-
-setTimeout(() => { console.log('start 1'); for (let i = 51; i <= 100; i++) offlineBroadcaster(i)}, 1000)
-setTimeout(() => { console.log('start 2');  for (let i = 101; i <= 150; i++) offlineBroadcaster(i)}, 5000)
-setTimeout(() => { console.log('start 3');  for (let i = 151; i <= 200; i++) offlineBroadcaster(i)}, 5000)
-
-setTimeout(() => { console.log('start 4');  for (let i = 1; i <= 25; i++) publicBroadcaster(i)}, 5000)
-
-setTimeout(() => { console.log('star t 5');  for (let i = 26; i <= 50; i++) publicBroadcaster(i)}, 5000)
+new SystemModel()
+    .save()
+    .then(() => recsStart('admin','admin'))
+    .then(() => recsStart('user','user'))
+    .then(() => recsStart('broadcaster','broadcaster'))
+    .then(() => recsStart('broadcaster','onlineBroadcaster', 200))
+    .then(() => disconnect())
+    .catch((err) => {
+        console.log(err.message);
+        disconnect();
+    })
