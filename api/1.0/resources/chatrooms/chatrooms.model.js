@@ -23,6 +23,16 @@ var ChatRoomsSchema = new Schema({
     users: {},
     images: {
         broadcasterGrid: String
+    },
+    viewers: {
+        type: Number,
+        min: 0,
+        required: true
+    },
+    xp: {
+        type: Number,
+        default: 0,
+        min: 0
     }
 },{
     timestamps: true
