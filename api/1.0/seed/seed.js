@@ -48,7 +48,7 @@ const createMethods = {
     onlineBroadcaster (usr, type, methodType, num, offset, resolve) {
         usr.then((user) => {
             console.log(`${user.username} user saved.`)
-            let broadcaster = new BroadcasterModel(new Broadcaster(user.username))
+            let broadcaster = new BroadcasterModel(new Broadcaster(user.username, true))
             let chatroom = new ChatroomModel({
                 slug: broadcaster.slug,
                 broadcasterID: broadcaster._id,
@@ -56,9 +56,14 @@ const createMethods = {
                 username: broadcaster.username,
                 topic: 'Chatroom Topic Goes Here',
                 images: broadcaster.images,
-                tags: broadcaster.tags
+                tags: broadcaster.tags,
+                viewers: rando(2000),
+                xp: rando()
             })
+
+            // add chatroom broadcaster is in to broadcaster
             broadcaster.room = chatroom._id
+
             return {broadcaster, chatroom}
         })
         .then(({broadcaster, chatroom}) => {
@@ -110,7 +115,7 @@ for (let i = 0; i < 10; i ++) {
     }
 }
 
-const rando = () => Math.floor(Math.random() * 19) + 1
+const rando = (max = 100000) => Math.floor(Math.random() * max) + 1
 
 class User {
     constructor (
@@ -132,17 +137,26 @@ class User {
 class Broadcaster {
 
     constructor (
-        username
+        username,
+        isOnline = false
     ) {
+
+        const approvalDate = this.randomDate(new Date(2012, 0, 1), new Date());
+        const approvalTime = approvalDate.getTime();
+        const newCutOff = Date.now() - 12096e5 - 12096e5;
+        const isNew = newCutOff < approvalDate;
+
         this._id = new mongoose.Types.ObjectId();
-        this.isOnline = false;
+        this.isOnline = isOnline;
         this.slug = slugify(username, {lower: true});
         this.username = username;
         this.tags = this.createTags();
-        this.approved = this.randomDate(new Date(2012, 0, 1), new Date());
+        if (isNew) this.tags.push('new');
+        this.approved = approvalDate;
         this.images = {
-            broadcasterGrid: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/70390/show-" + rando() +  ".jpg"
+            broadcasterGrid: "https://s3-us-west-2.amazonaws.com/s.cdpn.io/70390/show-" + rando(19) +  ".jpg"
         }
+        this.xp = rando()
     }
 
     randomDate(start, end) {
@@ -202,9 +216,9 @@ const disconnect = () => {
     process.exit();
 }
 
-BroadcasterModel.remove((err) => { console.log(err); });
-SystemModel.remove((err) => { console.log(err); });
-UserModel.remove((err) => { console.log(err); });
+for (let mod of [BroadcasterModel, ChatroomModel, SystemModel, UserModel]){
+    mod.remove((err) => { console.log(err); });
+}
 
 new SystemModel()
     .save()
