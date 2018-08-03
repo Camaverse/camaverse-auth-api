@@ -38,7 +38,6 @@ const APIVersions = ['1.0'];
 APIVersions.forEach(v => {
     // example:
     // domain/1.0/
-    console.log(`/${v}`, `./api/${v}/`);
     app.use(`/${v}`, require(`./api/${v}/`)(io));
 })
 
