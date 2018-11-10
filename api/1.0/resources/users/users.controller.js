@@ -2,20 +2,8 @@ const jwt = require('jsonwebtoken');
 const User = require("./users.model");
 const SystemModel = require('../system/system.model')
 const slugify = require('slugify')
-const {success, error} = require('../../helpers/ApiResponse');
+const {isExpressReq, respond} = require('../../helpers/ApiResponse');
 
-const checkOTP = (user, otpHeader) => {
-
-    return new Promise((resolve, reject) => {
-        if (!user.twofactor.secret){
-            resolve(user)
-        } else {
-            if (!otpHeader){
-                reject(new Error('Please enter otp to continue'))
-            }
-        }
-    })
-}
 const getCoins = (req, res) => {
     let usernameLower = (req && req.query && req.query.username) ? req.query.username :
         (req && req.body && req.body.username) ? req.body.username : null;
@@ -35,39 +23,55 @@ const getJWTAndUser = (user) => {
         }
     )
 }
-const init = (req, res, user, cb) => {
-    if (!user || !user.username) {
-        SystemModel.find({})
-            .then((rec) => {
-                if (!rec.length){
-                    cb('System Not Found', null);
-                } else {
-                    rec = rec[0]
-                    const guestNum = rec.guestNo;
-                    const username = 'Guest ' + guestNum;
-                    const slug = slugify(username, {lower: true});
+const createNewGuest = (res) => {
+    let err = {};
+    SystemModel.find({})
+        .then((rec) => {
+            if (!rec.length){
+                err.message = 'System Not Found';
+                respond(err, null, res);
+            } else {
+                rec = rec[0]
+                const guestNum = rec.guestNo;
+                const username = 'Guest ' + guestNum;
+                const slug = slugify(username, {lower: true});
 
-                    let guest = {
-                        // ip: socket.handshake.address,
-                        // isLoggedIn: false,
-                        // roles: ['guest'],
-                        slug,
-                        // status: 'online',
-                        username
-                    }
-                    if (cb) cb(null, guest);
-                    rec.guestNo++
-                    rec.save();
+                let guest = {
+                    // ip: socket.handshake.address,
+                    // isLoggedIn: false,
+                    roles: ['guest'],
+                    slug,
+                    // status: 'online',
+                    username
                 }
-            })
-            .catch(cb)
+                respond(null, guest, res)
+                rec.guestNo++
+                rec.save();
+            }
+        })
+        .catch((error) => {
+            err.message = error;
+            respond(err, null, res)
+        })
+}
+
+const init = (req, res) => {
+    let user;
+
+    if (isExpressReq(req) && req.body.user) user = req.body.user;
+    else if (req.user) user = req.user;
+
+    if (!user || !user.username) createNewGuest(res)
+    else if (!user.roles || user.roles.indexOf('user') === -1) {
+        user.roles = ['guest'];
+        respond(null, user, res)
     } else {
         const usernameLower = user.username.toLowerCase().trim()
         User.findOne({usernameLower})
             .then((user) => {
-                return respond(null, user.loginInfo, cb)
+               respond(null, user.loginInfo, res)
             })
-            .catch((err) => respond(err, null, cb))
+            .catch((err) => respond(err, null, res))
     }
 }
 const login = (req, res) => {
@@ -98,24 +102,6 @@ const logout = (req, res) => {
     User.findOneAndUpdate(qry, update, options)
         .then((user) => respond(null, user, res))
         .catch((err) => respond(err, null, res))
-}
-const respond = (err, docs, res) => {
-
-    let response;
-    if (err) response = new error(err.message, docs);
-    else response = new success(docs);
-
-    if (err && res && res.status) {
-        res.status(500).json(response)
-    } else if (err && res) {
-        res(response)
-    } else if (res && res.status) {
-        res.status(200).json(response)
-    } else if (res) {
-        res(err, response)
-    } else {
-        console.log(response)
-    }
 }
 const signup = (req, res) => {
     if (!req.body.username || !req.body.password || !req.body.email) {

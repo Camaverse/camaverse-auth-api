@@ -7,7 +7,10 @@ const chatRoom = require('./chatrooms.helpers')
 const ApiResponse = require('../../helpers/ApiResponse');
 const Success = ApiResponse.SuccessResponse;
 
-const qryOptions = { new: true, fields: 'username slug isOnline tags approved images show isAway topic users' }
+const qryOptions = {
+    limit: 50,
+    select: 'username slug status tags approved images show isAway topic'
+};
 
 const pad = (num) => (num < 10) ? `0${num}` : num;
 
@@ -115,145 +118,172 @@ module.exports = {
                 io.emit('updateTopic', emit)
             })
         },
-
-        updateTags (obj, cb) {
-            let search = {_id: obj._id}
-            let events = {
-                date: nowDate(),
-                event: 'update tags',
-                topic: obj.tags
+    updateTags (obj, cb) {
+        let search = {_id: obj._id}
+        let events = {
+            date: nowDate(),
+            event: 'update tags',
+            topic: obj.tags
+        }
+        let update = { $set: { tags: obj.tags, $push: { events }}}
+        ChatRooms.findOneAndUpdate(search, update, qryOptions, (err, room) => {
+            let emit = {
+                _id: room._id,
+                slug: room.slug,
+                tags: obj.tags
             }
-            let update = { $set: { tags: obj.tags, $push: { events }}}
-            ChatRooms.findOneAndUpdate(search, update, qryOptions, (err, room) => {
-                let emit = {
-                    _id: room._id,
-                    slug: room.slug,
-                    tags: obj.tags
-                }
-                cb(room)
-                io.emit('updateTags', emit)
-            })
-        },
+            cb(room)
+            io.emit('updateTags', emit)
+        })
+    },
+    createShow (obj, cb) {
 
-        createShow (obj, cb) {
+        Broadcasters.findOne({slug: obj.slug}, (err, broadcaster) => {
+            let newShow = {show: obj.show, broadcasterID: obj._id,
+                slug: obj.slug, username: obj.username, images: broadcaster.images, socket: socket.id}
+            let cr = new ChatRooms(newShow)
+            broadcaster.room = cr._id
+            broadcaster.save((err)=> {
+                if (err) console.log(err)
+            } )
 
-            Broadcasters.findOne({slug: obj.slug}, (err, broadcaster) => {
-                let newShow = {show: obj.show, broadcasterID: obj._id,
-                    slug: obj.slug, username: obj.username, images: broadcaster.images, socket: socket.id}
-                let cr = new ChatRooms(newShow)
-                broadcaster.room = cr._id
-                broadcaster.save((err)=> {
-                    if (err) console.log(err)
-                } )
-
-                cr.save((err, cr) => {
-                    if (err) cb(err)
-                    else {
-                        socket.join(cr._id)
-                        cb([cr])
-                        io.emit('showChange', [cr])
-                    }
-                })
-            })
-        },
-
-        goAway (_id, cb) {
-            let qry = {_id}
-            let events = {
-                date: nowDate(),
-                event: 'away'
-            }
-            let update = {$set: {isAway: true}, $push: {events}}
-            ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
+            cr.save((err, cr) => {
                 if (err) cb(err)
-                else if (cr === null) console.log('CR NOT FOUND', qry, update)
                 else {
+                    socket.join(cr._id)
                     cb([cr])
                     io.emit('showChange', [cr])
                 }
             })
-        },
-
-        resumeShow (_id, cb) {
-            let qry = {_id}
-            let events = {
-                date: nowDate(),
-                event: 'resume'
+        })
+    },
+    goAway (_id, cb) {
+        let qry = {_id}
+        let events = {
+            date: nowDate(),
+            event: 'away'
+        }
+        let update = {$set: {isAway: true}, $push: {events}}
+        ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
+            if (err) cb(err)
+            else if (cr === null) console.log('CR NOT FOUND', qry, update)
+            else {
+                cb([cr])
+                io.emit('showChange', [cr])
             }
-            let update = {$set: {isAway: false}, $push: {events}}
-            ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
-                if (err) cb(err)
-                else {
-                    cb([cr])
-                    io.emit('showChange', [cr])
+        })
+    },
+    resumeShow (_id, cb) {
+        let qry = {_id}
+        let events = {
+            date: nowDate(),
+            event: 'resume'
+        }
+        let update = {$set: {isAway: false}, $push: {events}}
+        ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
+            if (err) cb(err)
+            else {
+                cb([cr])
+                io.emit('showChange', [cr])
+            }
+        })
+    },
+    goOffline (_id, cb) {
+        let qry = {_id}
+        let updateObj = {endedAt: nowDate(), isAway: false, isOnline: false}
+        let update = {$set: updateObj}
+        ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
+            if (err) cb(err)
+            else {
+                cb([cr])
+                io.emit('showChange', [cr])
+            }
+        })
+    },
+    leaveRoom ({_id, user}) {
+        console.log('LEAVE ROOM', _id)
+        ChatRooms
+            .findOne({_id})
+            .then((room) => {
+
+                console.log(room)
+
+                if (room.users[user]) {
+                    const usr = room.users[user];
+
+                    usr.inRoom = false;
+                    usr.logs[usr.logs.length-1].stop = Date.now()
+
+                    room.markModified('users')
+                    room.save()
+                        .then((room) => {
+                            console.log(room)
+                        })
+                        .catch((err) => {
+                                console.log(err)
+                        })
                 }
             })
-        },
+            .catch((err) => {
+                console.log(err)
+            })
+    },
 
-        goOffline (_id, cb) {
-            let qry = {_id}
-            let updateObj = {endedAt: nowDate(), isAway: false, isOnline: false}
-            let update = {$set: updateObj}
-            ChatRooms.findOneAndUpdate(qry, update, qryOptions, (err, cr) => {
-                if (err) cb(err)
+    // POST: /v1.0/chatrooms/:id
+    // Add users to a room
+    join (req, res) {
+        let _id = req.params.id
+        let user = req.body.user
+        chatRoom.addUserToRoom(_id, user, res, socket)
+    },
+
+    // GET: /v1.0/chatrooms/:slug/:show
+    getShow (req, res) {
+        ChatRooms.findOne({slug: req.params.slug, show: req.params.show},
+            (err,data) => {
+                if (err) res.status(500).json({err})
+                if (!data) res.status(500).json({err: "no rooms found"})
                 else {
-                    cb([cr])
-                    io.emit('showChange', [cr])
+                    ChatMessages.find({'to.show': req.params.show}, (err, msgs) => {
+                        data.messages = msgs
+                        data = {room: data, messages: msgs}
+                        res.status(200).json(new Success(data))
+                    });
                 }
             })
-        },
+    },
 
-        leaveRoom ({_id, user}) {
-            console.log('LEAVE ROOM', _id)
-            ChatRooms
-                .findOne({_id})
-                .then((room) => {
+    list (req, res){
 
-                    console.log(room)
+        const options = req.query
 
-                    if (room.users[user]) {
-                        const usr = room.users[user];
-
-                        usr.inRoom = false;
-                        usr.logs[usr.logs.length-1].stop = Date.now()
-
-                        room.markModified('users')
-                        room.save()
-                            .then((room) => {
-                                console.log(room)
-                            })
-                            .catch((err) => {
-                                    console.log(err)
-                            })
-                    }
-                })
-                .catch((err) => {
-                    console.log(err)
-                })
-        },
-
-        // POST: /v1.0/chatrooms/:id
-        // Add users to a room
-        join (req, res) {
-            let _id = req.params.id
-            let user = req.body.user
-            chatRoom.addUserToRoom(_id, user, res, socket)
-        },
-
-        // GET: /v1.0/chatrooms/:slug/:show
-        getShow (req, res) {
-            ChatRooms.findOne({slug: req.params.slug, show: req.params.show},
-                (err,data) => {
-                    if (err) res.status(500).json({err})
-                    if (!data) res.status(500).json({err: "no rooms found"})
-                    else {
-                        ChatMessages.find({'to.show': req.params.show}, (err, msgs) => {
-                            data.messages = msgs
-                            data = {room: data, messages: msgs}
-                            res.status(200).json(new Success(data))
-                        });
-                    }
-                })
+        let search = {
+            isOnline: true
         }
 
+        if (options.tags){
+            if (options.tags === 'Top'){
+                qryOptions.sort = {xp: -1}
+                qryOptions.select += ' xp';
+            }
+            else if (options.tags === 'Trending'){
+                qryOptions.sort = {viewers: -1}
+                qryOptions.select += ' viewers';
+            }
+            else if (options.tags === 'New'){
+                const d = new Date();
+                d.setMonth(d.getMonth() - 4);
+                search.approved = {$gte: new Date(d)}
+            }
+            else {
+                // options.tags = options.tags.toLowerCase()
+                search.tags = options.tags
+            }
+        }
+
+        ChatRooms.paginate(search, qryOptions)
+            .then((rooms) => {
+                res.status(200).json(rooms)
+            })
+    }
 }
