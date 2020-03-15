@@ -26,11 +26,15 @@ const UserSchema = new Schema({
       required: true,
       default: false
     },
+    loginToken: {
+        expires: String,
+        deviceID: String,
+        token: String
+    },
     logins: [],
     logouts: [],
     password: {
-        type: String,
-        required: true
+        type: String
     },
     roles: {
         type: [String],

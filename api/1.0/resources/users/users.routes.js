@@ -4,14 +4,18 @@ const controller = require('./users.controller');
 
 exports = module.exports = function(io) {
 
-    router.route('/')
-        .get(controller.logout)
-        .post(controller.logout);
-    router.get('/logout/:username', controller.logout);
-    router.post('/login', controller.login);
-    router.post('/signup', controller.signup);
+    router.route('/login')
+        .get(controller.login)
+        .post(controller.login);
+    router.get('/loginLink', controller.loginLink);
+    router.get('/logout/:slug', controller.logout);
+    router.post('/join', controller.join);
+
+
+    router.post('/guest', controller.createGuest);
 
     io.on('connection', function (socket) {
+        console.log('socket io connection')
         socket.on('/users/init', controller.init)
         socket.on('/users/login', controller.login)
         socket.on('/users/logout', controller.logout)
