@@ -14,9 +14,6 @@ const app = module.exports = express();
 const server = http.createServer(app);
 const io = require('socket.io').listen(server);
 
-
-console.log(port);
-
 // view engine setup
 app.set('port', port);
 
