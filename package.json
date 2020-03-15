@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node ./server",
     "start-mongo": "mongod",
-    "dev-full": "concurrently \"mongod\" \"npm start\""
+    "dev-full": "concurrently \"docker-compose up\" \"npm start\""
   },
   "dependencies": {
     "bcrypt-nodejs": "0.0.3",

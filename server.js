@@ -9,7 +9,7 @@ const morgan = require('morgan');
 const passport = require('passport');
 const debug = require('debug')('node-rest-auth:server');
 const http = require('http');
-const port = normalizePort(process.env.PORT || '1981');
+const port = normalizePort(process.env.PORT || '80');
 const app = module.exports = express();
 const server = http.createServer(app);
 const io = require('socket.io').listen(server);
