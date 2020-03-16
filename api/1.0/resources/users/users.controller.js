@@ -4,6 +4,63 @@ const SystemModel = require('../system/system.model');
 const slugify = require('slugify');
 const uuid = require('uuid');
 const {isExpressReq, respond} = require('../../helpers/ApiResponse');
+const { promisify } = require("util");
+
+const redis = require("redis");
+const client = redis.createClient();
+client.on("error", function(error) {
+    console.error(error);
+});
+
+const rGet = promisify(client.get).bind(client);
+const rSet = promisify(client.set).bind(client);
+
+
+
+// system variables
+const err = {};
+let guestCount = 0;
+
+// system startup
+const loadGuestCount = () => {
+    console.log('loadGuestCount');
+    rGet("guest-count")
+        .then(count => {
+            if (count === null) {
+                setGuestCount(0);
+            } else {
+                guestCount = count;
+                console.log('GUEST COUNT', count);
+            }
+        })
+        .catch(() => {
+            console.log('ERROR');
+        });
+};
+
+const setGuestCount = (count) => {
+    return rSet("guest-count", count)
+        .then(console.log)
+        .catch(() => {
+            console.log('ERROR');
+        });
+};
+
+
+// route methods
+const createGuest = (req, res) => {
+    guestCount++
+    const _usr = {
+        slug: 'Guest-' + guestCount,
+        username: 'Guest ' + guestCount
+    }
+    setGuestCount(guestCount);
+    return res.status(200).json(_usr)
+}
+
+
+
+loadGuestCount();
 
 /*
 const larry = new User({
@@ -18,15 +75,8 @@ const users = {
     users: []
 }
 
-const createGuest = (req, res) => {
-    const guestNumber = users.guests.length + 1
-    const _usr = {
-        slug: 'Guest-' + guestNumber,
-        username: 'Guest ' + guestNumber
-    }
-    users.guests.push(_usr)
-    return res.status(200).json(_usr)
-}
+
+
 const getCoins = (req, res) => {
     let usernameLower = (req && req.query && req.query.username) ? req.query.username :
         (req && req.body && req.body.username) ? req.body.username : null;
