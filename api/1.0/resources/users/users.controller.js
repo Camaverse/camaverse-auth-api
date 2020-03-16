@@ -1,21 +1,9 @@
-const jwt = require('jsonwebtoken');
+
 const User = require("./users.model");
-const SystemModel = require('../system/system.model');
-const slugify = require('slugify');
 const uuid = require('uuid');
 const {isExpressReq, respond} = require('../../helpers/ApiResponse');
-const { promisify } = require("util");
-
-const redis = require("redis");
-const client = redis.createClient();
-client.on("error", function(error) {
-    console.error(error);
-});
-
-const rGet = promisify(client.get).bind(client);
-const rSet = promisify(client.set).bind(client);
-
-
+const RedisPromises = require('../../helpers/RedisPromises');
+const { rGet, rSet } = RedisPromises;
 
 // system variables
 const err = {};
@@ -23,29 +11,21 @@ let guestCount = 0;
 
 // system startup
 const loadGuestCount = () => {
-    console.log('loadGuestCount');
     rGet("guest-count")
         .then(count => {
             if (count === null) {
                 setGuestCount(0);
             } else {
                 guestCount = count;
-                console.log('GUEST COUNT', count);
             }
         })
-        .catch(() => {
-            console.log('ERROR');
-        });
+        .catch(console.log);
 };
 
 const setGuestCount = (count) => {
     return rSet("guest-count", count)
-        .then(console.log)
-        .catch(() => {
-            console.log('ERROR');
-        });
+        .catch(console.log);
 };
-
 
 // route methods
 const createGuest = (req, res) => {
@@ -58,7 +38,30 @@ const createGuest = (req, res) => {
     return res.status(200).json(_usr)
 }
 
+const createUser = (req, res) => {
+    if (!req.body.username || !req.body.email) {
+        res.json({success: false, msg: 'Please pass username and email.'});
+    } else {
+        var newUser = new User({
+            email: req.body.email,
+            username: req.body.username
+        });
 
+        if (req.body.roles) newUser.roles = [req.body.roles];
+
+        // save the user
+        newUser.save(function(err) {
+            let msg = null;
+            if (err) {
+                if (err.code === 11000) {
+                    msg = 'User exists.';
+                }
+                return res.status(500).json({success: false, msg});
+            }
+            return res.status(200).json({success: true, msg: 'Successful created new user.'});
+        });
+    }
+}
 
 loadGuestCount();
 
@@ -70,63 +73,7 @@ const larry = new User({
 */
 // larry.save();
 
-const users = {
-    guests: [],
-    users: []
-}
 
-
-
-const getCoins = (req, res) => {
-    let usernameLower = (req && req.query && req.query.username) ? req.query.username :
-        (req && req.body && req.body.username) ? req.body.username : null;
-    usernameLower = usernameLower.toLowerCase()
-
-    User.findOne({usernameLower})
-        .then((user) => respond(null, user.coins.balance, res))
-        .catch((err) => respond(err, null, res))
-}
-const getJWTAndUser = (user) => {
-    return new Promise(
-        (resolve, reject) => {
-            let success = true
-            let token = 'JWT ' + jwt.sign(user, process.env.PASSPORT_SECRET)
-            user = user.loginInfo
-            resolve({token, user, success})
-        }
-    )
-}
-const createNewGuest = (res) => {
-    let err = {};
-    SystemModel.find({})
-        .then((rec) => {
-            if (!rec.length){
-                err.message = 'System Not Found';
-                respond(err, null, res);
-            } else {
-                rec = rec[0]
-                const guestNum = rec.guestNo;
-                const username = 'Guest ' + guestNum;
-                const slug = slugify(username, {lower: true});
-
-                let guest = {
-                    // ip: socket.handshake.address,
-                    // isLoggedIn: false,
-                    roles: ['guest'],
-                    slug,
-                    // status: 'online',
-                    username
-                }
-                respond(null, guest, res)
-                rec.guestNo++
-                rec.save();
-            }
-        })
-        .catch((error) => {
-            err.message = error;
-            respond(err, null, res)
-        })
-}
 const init = (req, res) => {
     let user;
 
@@ -214,26 +161,6 @@ const logout = (req, res) => {
         .then((user) => respond(null, user, res))
         .catch((err) => respond(err, null, res))
 }
-const join = (req, res) => {
-    if (!req.body.username || !req.body.email) {
-        res.json({success: false, msg: 'Please pass username and email.'});
-    } else {
-        var newUser = new User({
-            email: req.body.email,
-            username: req.body.username
-        });
-
-        if (req.body.roles) newUser.roles = [req.body.roles];
-
-        // save the user
-        newUser.save(function(err) {
-            if (err) {
-                return res.status(500).json({success: false, msg: err});
-            }
-            return res.status(200).json({success: true, msg: 'Successful created new user.'});
-        });
-    }
-}
 const updateUserOnLogin = (user) => {
     user.status = 'online';
     user.loginToken = {};
@@ -258,11 +185,10 @@ const validate = {
 
 module.exports = {
     createGuest,
-    getCoins,
     init,
     login,
     loginLink,
     logout,
-    join
+    join: createUser
 }
 
