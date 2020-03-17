@@ -1,9 +1,11 @@
-
 const User = require("./users.model");
 const uuid = require('uuid');
+const nodemailer = require('nodemailer');
+
 const {isExpressReq, respond} = require('../../helpers/ApiResponse');
 const RedisPromises = require('../../helpers/RedisPromises');
 const { rGet, rSet } = RedisPromises;
+const sendMail = require('../../emails/mail.service');
 
 // system variables
 const err = {};
@@ -37,30 +39,54 @@ const createGuest = (req, res) => {
     setGuestCount(guestCount);
     return res.status(200).json(_usr)
 }
+const createUser = async (req, res) => {
+    const { username, email, deviceID, roles } = req.body;
+    const errors = [];
 
-const createUser = (req, res) => {
-    if (!req.body.username || !req.body.email) {
-        res.json({success: false, msg: 'Please pass username and email.'});
-    } else {
-        var newUser = new User({
-            email: req.body.email,
-            username: req.body.username
-        });
+    let success = false;
+    if (!deviceID)  errors.push("Invalid device");
+    if (!email) errors.push("Email is required");
+    if (!username) errors.push("Username is required");
+    if (errors.length) return res.status(401).json({errors});
 
-        if (req.body.roles) newUser.roles = [req.body.roles];
+    const newUser = new User({email, username});
+    if (roles) newUser.roles = [roles];
 
-        // save the user
-        newUser.save(function(err) {
-            let msg = null;
-            if (err) {
-                if (err.code === 11000) {
-                    msg = 'User exists.';
-                }
-                return res.status(500).json({success: false, msg});
-            }
-            return res.status(200).json({success: true, msg: 'Successful created new user.'});
-        });
-    }
+    // save the user
+    newUser.save(function(err) {
+        let msg = null;
+
+        if (err) {
+            if (err.code === 11000)  msg = 'User exists.';
+            return res.status(401).json({success, msg});
+        };
+        sendMail('accountCreated', {email});
+        msg = 'Successful created new user.';
+        success = true;
+        return res.status(200).json({success, msg});
+    });
+}
+const loginLink = (req, res) => {
+    const { email, deviceID } = req.query;
+    const errors = [];
+    const token =  uuid.v4().replace('/','');
+    const expires = Date.now() + 600000;
+
+    if (!email) errors.push("Email is required");
+    if (!deviceID) errors.push("Invalid device");
+    if (errors.length) res.status(401).json({errors});
+
+    const search = { email };
+    const replace = { loginToken: {deviceID, expires, token} };
+    console.log(replace);
+    User.findOneAndUpdate(search, replace)
+        .then(usr => {
+           sendMail('loginLink', {email, token});
+           res.status(200).json("ok");
+        })
+        .catch(err => {
+            res.status(401).json(err);
+        })
 }
 
 loadGuestCount();
@@ -124,31 +150,6 @@ const login = (req, res) => {
         })
         .catch(err => {
             return res.status(401).json(err)
-        })
-}
-const loginLink = (req, res) => {
-    const { email, deviceID } = req.query;
-    const errors = [];
-    if (!email) {
-        errors.push("Email is required")
-    }
-    if (!deviceID) {
-        errors.push("Invalid device")
-    }
-    if (errors.length) {
-        res.status(401).json({errors})
-    }
-    User.findOneAndUpdate({ email }, {  loginToken: {
-            deviceID,
-            expires: Date.now() + 600000,
-            token: uuid.v4().replace('/','')
-        } })
-        .then(usr => {
-            res.status(200).json("ok");
-        })
-        .catch(err => {
-            console.log({err});
-            res.status(401).json(err);
         })
 }
 const logout = (req, res) => {
