@@ -3,14 +3,9 @@ require('dotenv').config()
 const nodemailer = require('nodemailer');
 const sprintf = require('sprintf-js').sprintf;
 
-const transport = nodemailer.createTransport({
-    host: 'smtp.mailtrap.io',
-    port: 2525,
-    auth: {
-        user: '9b5c8236956a18',
-        pass: 'cef86e390c56d4'
-    }
-});
+const transports = require('./emailTransports');
+
+const transport = nodemailer.createTransport(transports.PROD);
 
 const messages = {
   accountCreated: {
