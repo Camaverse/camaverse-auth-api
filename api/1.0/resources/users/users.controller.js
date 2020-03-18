@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const User = require("./users.model");
 const uuid = require('uuid');
 const nodemailer = require('nodemailer');
@@ -11,7 +12,18 @@ const sendMail = require('../../emails/mail.service');
 const err = {};
 let guestCount = 0;
 
-// system startup
+// helper functions
+const getJWTAndUser = (user) => {
+    return new Promise(
+        (resolve, reject) => {
+            let success = true
+            let token = 'JWT ' + jwt.sign(user, process.env.PASSPORT_SECRET)
+            user = user.loginInfo
+            resolve({token, user, success})
+        }
+    )
+}
+
 const loadGuestCount = () => {
     rGet("guest-count")
         .then(count => {
@@ -29,6 +41,12 @@ const setGuestCount = (count) => {
         .catch(console.log);
 };
 
+const createEmailLoginToken = deviceID => ({
+        deviceID,
+        expires: Date.now() + 600000,
+        token: uuid.v4().replace('/', '')
+})
+
 // route methods
 const createGuest = (req, res) => {
     guestCount++
@@ -39,6 +57,7 @@ const createGuest = (req, res) => {
     setGuestCount(guestCount);
     return res.status(200).json(_usr)
 }
+
 const createUser = async (req, res) => {
     const { username, email, deviceID, roles } = req.body;
     const errors = [];
@@ -49,8 +68,8 @@ const createUser = async (req, res) => {
     if (!username) errors.push("Username is required");
     if (errors.length) return res.status(401).json({errors});
 
-    const newUser = new User({email, username});
-    if (roles) newUser.roles = [roles];
+    const loginToken = createEmailLoginToken(deviceID);
+    const newUser = new User({email, username, loginToken});
 
     // save the user
     newUser.save(function(err) {
@@ -61,27 +80,27 @@ const createUser = async (req, res) => {
             return res.status(401).json({success, msg});
         };
         sendMail('accountCreated', {email});
+        sendMail('loginLink', {email, token: loginToken.token});
         msg = 'Successful created new user.';
         success = true;
         return res.status(200).json({success, msg});
     });
 }
+
 const loginLink = (req, res) => {
     const { email, deviceID } = req.query;
     const errors = [];
-    const token =  uuid.v4().replace('/','');
-    const expires = Date.now() + 600000;
 
     if (!email) errors.push("Email is required");
     if (!deviceID) errors.push("Invalid device");
     if (errors.length) res.status(401).json({errors});
 
+    const loginToken = createEmailLoginToken(deviceID);
     const search = { email };
-    const replace = { loginToken: {deviceID, expires, token} };
-    console.log(replace);
-    User.findOneAndUpdate(search, replace)
+    const update = {loginToken };
+    User.findOneAndUpdate(search, update)
         .then(usr => {
-           sendMail('loginLink', {email, token});
+           sendMail('loginLink', {email, token: loginToken.token});
            res.status(200).json("ok");
         })
         .catch(err => {
@@ -90,14 +109,6 @@ const loginLink = (req, res) => {
 }
 
 loadGuestCount();
-
-/*
-const larry = new User({
-    email: "larry.l.sharpe@gmail.com",
-    username: "Big Lar"
-})
-*/
-// larry.save();
 
 
 const init = (req, res) => {
@@ -119,6 +130,16 @@ const init = (req, res) => {
             .catch((err) => respond(err, null, res))
     }
 }
+
+
+const updateUserOnLogin = (user) => {
+    user.status = 'online';
+    user.loginToken = {};
+    user.isLoggedIn = true;
+    user.logins.push(Date.now());
+    return user.save()
+}
+
 const login = (req, res) => {
     const errors = [];
     const deviceID = req.query && req.query.deviceID || req.body && req.body.deviceID || null;
@@ -132,24 +153,29 @@ const login = (req, res) => {
     if (errors.length) {
         return res.status(401).json({errors})
     }
+
     const qry = {
         "loginToken.deviceID": deviceID,
         "loginToken.token": token
     }
+
     User.findOne(qry)
         .then(usr => {
             if (usr.loginToken.expires < Date.now()){
-                return res.status(401).json({err: "Token Expired"})
+                res.status(401).json({err: "Token Expired"})
             }
-            updateUserOnLogin(usr)
-                .then(getJWTAndUser)
-                .then(ret => {
-                    usr.save()
-                    return res.status(200).json(ret)
-                })
+            else {
+                return usr;
+            }
+        })
+        .then(updateUserOnLogin)
+        .then(getJWTAndUser)
+        .then(ret => {
+            res.status(200).json(ret)
         })
         .catch(err => {
-            return res.status(401).json(err)
+            console.log('THERE IS AN ERROR', err)
+            res.status(401).json(err)
         })
 }
 const logout = (req, res) => {
@@ -159,15 +185,12 @@ const logout = (req, res) => {
     const options = { new: true };
 
     User.findOneAndUpdate(qry, update, options)
-        .then((user) => respond(null, user, res))
-        .catch((err) => respond(err, null, res))
-}
-const updateUserOnLogin = (user) => {
-    user.status = 'online';
-    user.loginToken = {};
-    user.isLoggedIn = true;
-    user.logins.push(Date.now());
-    return user.save()
+        .then(user => {
+            res.status(200).json({ok:"ok"});
+        })
+        .catch(err => {
+            res.status(401).json({ok: false});
+        })
 }
 const validate = {
     login (input){

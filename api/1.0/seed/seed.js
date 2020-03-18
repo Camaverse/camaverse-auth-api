@@ -112,7 +112,7 @@ const createMethods = {
 }
 createMethods.admin = createMethods.user;
 
-console.log(process.env.DB_CONNECT);
+console.log(process.env.MONGODB_URL);
 
 class User {
     constructor (
@@ -168,7 +168,7 @@ class Broadcaster {
     }
 }
 
-mongoose.connect(process.env.DB_CONNECT);
+mongoose.connect(process.env.MONGODB_URL);
 
 const recNext = (resolve, type, methodType, offset) => {
     if (counts[methodType]) {

@@ -28,7 +28,7 @@ const messages = {
 };
 
 const sendMail = ( message, vars ) => {
-    const msg = messages[message];
+    const msg = {...messages[message]};
     const keys = Object.keys(msg);
     keys.forEach( key => {
         msg[key] = sprintf(msg[key], vars.email, vars.token, process.env.MAIL_LOGIN_URL)
@@ -40,7 +40,7 @@ const sendMail = ( message, vars ) => {
        } else {
            console.log(info);
        }
-   });
+   })
 };
 
 module.exports = sendMail;
