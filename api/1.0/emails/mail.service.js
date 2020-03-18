@@ -5,7 +5,7 @@ const sprintf = require('sprintf-js').sprintf;
 
 const transports = require('./emailTransports');
 
-const transport = nodemailer.createTransport(transports.PROD);
+const transport = nodemailer.createTransport(transports[process.env.ENV]);
 
 const messages = {
   accountCreated: {
